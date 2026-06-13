@@ -20,6 +20,7 @@ from app.schemas.auth import (
     TokenResponse,
     RefreshRequest,
 )
+from app.models.user import User
 from app.services.auth import authenticate_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -49,7 +50,6 @@ def verify_totp_endpoint(body: VerifyTOTPRequest, db: Session = Depends(get_db))
     except (JWTError, ValueError):
         raise HTTPException(status_code=401, detail="Token pendiente inválido o expirado")
 
-    from app.models.user import User
     user = db.query(User).filter(User.id == UUID(payload["sub"]), User.is_active == True).first()
     if not user:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
