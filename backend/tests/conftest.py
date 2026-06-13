@@ -43,9 +43,9 @@ _TestingSessionLocal = sessionmaker(_engine, autocommit=False, autoflush=False)
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
     """Create all tables once per test session, drop them at the end."""
-    Base.metadata.create_all(bind=_engine)
+    Base.metadata.create_all(_engine)
     yield
-    Base.metadata.drop_all(bind=_engine)
+    Base.metadata.drop_all(_engine)
 
 
 @pytest.fixture
