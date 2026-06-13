@@ -152,3 +152,21 @@ def make_valid_excel():
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+@pytest.fixture
+def seeded_borrador_orden(client, auth_headers, make_valid_excel):
+    """Upload a valid Excel and return the UUID string of the created BORRADOR orden."""
+    r = client.post(
+        "/uploads/excel",
+        files={"file": ("ops.xlsx", make_valid_excel,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        headers=auth_headers,
+    )
+    assert r.status_code == 201, f"Upload failed: {r.text}"
+    # Get the ID from the dashboard
+    r = client.get("/dashboard/borradores", headers=auth_headers)
+    assert r.status_code == 200
+    items = r.json()["items"]
+    assert len(items) >= 1
+    return items[0]["id"]
