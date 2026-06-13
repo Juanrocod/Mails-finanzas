@@ -7,6 +7,8 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY", "test_secret_key_minimum_32_characters_here_ok")
 os.environ.setdefault("ENCRYPTION_KEY", Fernet.generate_key().decode())
 os.environ.setdefault("TOTP_ISSUER", "GestionMailsTest")
+# Disable slowapi rate limiting in tests so multiple login calls don't get throttled
+os.environ.setdefault("RATELIMIT_ENABLED", "false")
 
 import pytest
 import pyotp

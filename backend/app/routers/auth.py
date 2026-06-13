@@ -1,7 +1,9 @@
 from datetime import timedelta
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from jose import JWTError
 
@@ -25,9 +27,12 @@ from app.services.auth import authenticate_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+limiter = Limiter(key_func=get_remote_address)
+
 
 @router.post("/login", response_model=PendingTokenResponse)
-def login(body: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
     user = authenticate_user(body.username, body.password, db)
     if not user:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")

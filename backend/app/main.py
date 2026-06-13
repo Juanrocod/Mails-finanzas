@@ -1,11 +1,17 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
-from app.routers import auth
-from app.core.dependencies import get_current_user
-from app.schemas.order import DashboardPage
+from app.routers import auth, uploads, orders, dashboard
+from app.routers import audit as audit_router
+
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="Gestión de Órdenes Bursátiles", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,13 +22,10 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
-
-
-# Stub routes so conftest auth_headers fixture can test protected endpoints.
-# Task 9 will replace these with the real dashboard router.
-@app.get("/dashboard/borradores", response_model=DashboardPage)
-def stub_borradores(_=Depends(get_current_user)):
-    return DashboardPage(items=[], total=0, page=1, size=50)
+app.include_router(uploads.router)
+app.include_router(orders.router)
+app.include_router(dashboard.router)
+app.include_router(audit_router.router)
 
 
 @app.get("/health")
