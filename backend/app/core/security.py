@@ -65,9 +65,14 @@ class EncryptedString(TypeDecorator):
     def __init__(self, length: int = 512, **kwargs):
         super().__init__(length, **kwargs)
 
+    _fernet_cache: dict = {}
+
     def _fernet(self) -> Fernet:
         from app.core.config import settings
-        return Fernet(settings.ENCRYPTION_KEY.encode())
+        key = settings.ENCRYPTION_KEY
+        if key not in EncryptedString._fernet_cache:
+            EncryptedString._fernet_cache[key] = Fernet(key.encode())
+        return EncryptedString._fernet_cache[key]
 
     def process_bind_param(self, value, dialect):
         if value is None:

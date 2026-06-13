@@ -1,6 +1,6 @@
 import uuid
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Boolean, DateTime, Numeric, Enum, Text, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
@@ -34,7 +34,7 @@ class ExcelUpload(Base):
     total_ordenes = Column(Integer, nullable=False)
     ordenes_validas = Column(Integer, nullable=False)
     ordenes_con_error = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class Orden(Base):
@@ -57,5 +57,5 @@ class Orden(Base):
     estado = Column(Enum(EstadoMinuta), default=EstadoMinuta.BORRADOR, nullable=False)
     texto_minuta = Column(Text, nullable=False)
     texto_editado = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
