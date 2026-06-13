@@ -89,7 +89,7 @@ def get_orders_by_estado(
 
 
 def mark_overdue_as_alerta(db: Session) -> int:
-    threshold = datetime.utcnow() - timedelta(hours=ALERTA_THRESHOLD_HOURS)
+    threshold = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=ALERTA_THRESHOLD_HOURS)
     overdue = (
         db.query(Orden)
         .filter(Orden.estado == EstadoMinuta.ENVIADO, Orden.updated_at < threshold)

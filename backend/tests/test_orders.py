@@ -1,6 +1,6 @@
 import pytest
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from app.models.order import Orden, ExcelUpload, EstadoMinuta, TipoOperacion, CondicionLiquidacion
@@ -187,7 +187,7 @@ def test_mark_overdue_as_alerta(db):
 
     orden, _ = make_orden(db, EstadoMinuta.ENVIADO)
     # Manually set updated_at to 25 hours ago to simulate overdue
-    old_time = datetime.utcnow() - timedelta(hours=25)
+    old_time = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=25)
     db.execute(
         update(OrdenModel).where(OrdenModel.id == orden.id).values(updated_at=old_time)
     )
