@@ -6,7 +6,10 @@ Guía de contexto para Claude Code. Leer antes de tocar cualquier archivo del pr
 
 ## Qué es este proyecto
 
-Sistema web para automatizar la generación y gestión de Minutas bursátiles para un broker regulado por la CNV (Argentina). Middle Office sube un Excel exportado de la plataforma bursátil, el sistema genera los borradores de mail (Minutas) por cliente, Middle Office los revisa/edita/aprueba en un Dashboard y los envía manualmente. Toda acción queda registrada en un Audit Trail exportable.
+Sistema web para automatizar la generación y gestión de Minutas bursátiles para un broker regulado por la CNV (Argentina). Middle Office sube un Excel exportado de la plataforma bursátil, el sistema genera los borradores de mail (Minutas) por cliente, Middle Office los revisa/edita en un Dashboard y los envía manualmente.
+
+**Rama `master` = MVP sin persistencia de órdenes** (ver ADR-0006). La DB solo guarda usuarios/auth.  
+**Rama `con-db(f2)` = Fase 2** con persistencia completa, audit trail y estados extendidos. No tocar hasta que el MVP esté validado.
 
 **Lee `CONTEXT.md` para el glosario canónico del dominio antes de escribir cualquier código.**  
 **Lee `docs/PRD.md` para el alcance completo, decisiones de implementación y user stories.**  
@@ -69,51 +72,53 @@ Gestion-Mails/
 
 ---
 
-## Módulos del backend
+## Módulos del backend (MVP)
 
 | Módulo | Archivo | Responsabilidad |
 |--------|---------|----------------|
 | auth | `routers/auth.py` + `services/auth.py` | Login, 2FA, JWT, sesiones, log de accesos |
 | excel_parser | `services/excel_parser.py` | Leer y validar Excel, mapear columnas a Orden |
 | minuta_generator | `services/minuta_generator.py` | Generar texto plano estructurado de la Minuta |
-| dj_engine | `services/dj_engine.py` | Evaluar reglas de DJ y seleccionar template |
-| orders | `routers/orders.py` + `services/orders.py` | CRUD de Órdenes, máquina de estados |
-| audit | `services/audit.py` | Registro inmutable de AuditEvents |
-| dashboard | `routers/dashboard.py` | Endpoints por solapa (Borradores, Aprobados, etc.) |
+| dj_engine | `services/dj_engine.py` | Evaluar config DJ en RAM y aplicar texto de alerta |
+| session_store | `services/session_store.py` | Store en RAM: minutas por session_id, plantilla, config DJ |
+| uploads | `routers/uploads.py` | POST /uploads/excel — parsea y retorna minutas sin persistir |
+| session | `routers/session.py` | GET/PATCH minutas, plantilla y config DJ desde RAM |
+
+> Los módulos `orders`, `audit` y `dashboard` (con persistencia en DB) viven en `con-db(f2)`, no en master.
 
 ---
 
-## Máquina de estados de la Minuta
+## Máquina de estados de la Minuta (MVP)
 
 ```
-BORRADOR → APROBADO → ENVIADO → CONFIRMADO
-                                     ↑
-                                  ALERTA
+BORRADOR → ENVIADO
 ```
 
-- Transiciones **solo hacia adelante**. Una vez aprobada, no vuelve a BORRADOR.
-- Middle Office puede editar el texto en estado BORRADOR antes de aprobar.
-- CONFIRMADO y ALERTA son estados terminales en Fase 1.
+- Solo dos estados. No hay APROBADO, CONFIRMADO ni ALERTA en el MVP.
+- Middle Office edita el texto en BORRADOR, copia con el botón "Copiar contenido" y luego presiona "Enviado".
+- No hay transición hacia atrás: una vez marcada ENVIADO no puede volver a BORRADOR.
+
+> La máquina de estados completa (BORRADOR → APROBADO → ENVIADO → CONFIRMADO / ALERTA) está documentada en `con-db(f2)`.
 
 ---
 
-## Reglas de negocio críticas
+## Reglas de negocio críticas (MVP)
 
-1. **Cifrado obligatorio** — `cliente_email`, `cuenta_comitente`, `cuenta_cotapartista` siempre cifrados en DB.
-2. **Audit Trail inmutable** — los AuditEvents nunca se modifican ni eliminan. Solo INSERT.
-3. **2FA obligatorio** — no hay camino de login sin segundo factor.
-4. **Texto editado registrado** — si Middle Office modifica el texto de la Minuta, `texto_editado = true` se persiste antes de aprobar.
-5. **Parser tolerante a errores por fila** — si una fila del Excel falla, se reporta el error de esa fila sin bloquear las demás.
-6. **DJ por configuración** — los templates de DJ están en DB, no hardcodeados. El `dj_engine` los evalúa en runtime.
+1. **2FA obligatorio** — no hay camino de login sin segundo factor.
+2. **Parser tolerante a errores por fila** — si una fila del Excel falla, se reporta el error de esa fila sin bloquear las demás.
+3. **DJ por configuración en RAM** — la config de DJ (activo + texto de alerta) se guarda en el session store, no en DB.
+4. **Sin cifrado de órdenes en MVP** — los datos de órdenes nunca llegan a la DB, por lo que el cifrado de `cliente_email` / `cuenta_comitente` / `cuenta_cotapartista` aplica solo en Fase 2.
+5. **Sin audit trail en MVP** — no hay qué auditar si nada persiste.
+6. **Texto editado en RAM** — `texto_editado = true` se mantiene en el objeto Minuta en memoria.
 
 ---
 
 ## Convenciones de código
 
 - Usar los términos exactos del glosario en `CONTEXT.md` para nombres de clases, variables y endpoints. No inventar sinónimos.
-- Los endpoints del Dashboard siguen el patrón `/dashboard/{estado}` donde estado es uno de: `borradores`, `aprobados`, `enviados`, `confirmados`, `alertas`.
-- Los eventos de Audit Trail se generan desde los servicios, nunca desde los routers.
-- No hay soft-delete. Las Órdenes no se eliminan — solo cambian de estado.
+- Los endpoints de sesión siguen el patrón `/session/minutas` y `/session/minutas/{id}/enviado`.
+- Las tabs del Dashboard MVP son: `borradores`, `enviados`, `plantilla`, `config-dj`.
+- No hay soft-delete. Las Minutas solo cambian de estado en RAM (BORRADOR → ENVIADO).
 
 ---
 

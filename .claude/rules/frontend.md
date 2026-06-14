@@ -39,32 +39,36 @@ src/
 - Query keys: arrays `['minutas', estado]` donde `estado` es el enum de estado
 - Archivos: nombre igual al export default (`MinutaCard.tsx` exporta `MinutaCard`)
 
-## Rutas
+## Rutas (MVP)
 
 ```
 /login                    → LoginPage
 /login/2fa                → TwoFactorPage
 /dashboard/borradores     → DashboardPage (estado=BORRADOR)
-/dashboard/aprobados      → DashboardPage (estado=APROBADO)
 /dashboard/enviados       → DashboardPage (estado=ENVIADO)
-/dashboard/confirmados    → DashboardPage (estado=CONFIRMADO)
-/dashboard/alertas        → DashboardPage (estado=ALERTA)
-/dashboard/audit          → AuditPage
+/dashboard/plantilla      → PlantillaPage
+/dashboard/config-dj      → ConfigDJPage
 /                         → redirect a /dashboard/borradores si auth, sino /login
 ```
 
 Rutas del Dashboard envueltas en un guard que verifica token. Si no hay token → redirect `/login`.
 
+> Eliminadas: `/dashboard/aprobados`, `/dashboard/confirmados`, `/dashboard/alertas`, `/dashboard/audit`.
+
 ## Tipos de dominio (`src/types/domain.ts`)
 
 ```ts
-type EstadoMinuta = 'BORRADOR' | 'APROBADO' | 'ENVIADO' | 'CONFIRMADO' | 'ALERTA'
+// MVP: solo dos estados
+type EstadoMinuta = 'BORRADOR' | 'ENVIADO'
 type TipoOperacion = 'COMPRA' | 'VENTA'
 type Liquidacion = 'CI' | '24HS' | '48HS'
 
-interface Orden {
+interface Minuta {
   id: string
   cliente_nombre: string
+  cliente_email: string
+  cuenta_comitente: string
+  cuenta_cotapartista: string
   instrumento: string
   tipo: TipoOperacion
   cantidad: number
@@ -73,23 +77,24 @@ interface Orden {
   liquidacion: Liquidacion
   fecha_operacion: string  // ISO 8601
   dj_aplicada: boolean
-  dj_tipo: string | null
+  dj_texto: string | null  // texto de alerta DJ si aplica
   estado: EstadoMinuta
   texto_minuta: string
   texto_editado: boolean
   creado_en: string
 }
 
-interface AuditEvent {
-  id: string
-  orden_id: string
-  usuario_id: string
-  accion: 'CREADA' | 'EDITADA' | 'APROBADA' | 'ENVIADA' | 'CONFIRMADA' | 'ALERTA_GENERADA'
-  ip_origen: string
-  timestamp: string
-  detalle: Record<string, unknown> | null
+interface ConfigDJ {
+  activa: boolean
+  texto_alerta: string
+}
+
+interface Plantilla {
+  texto: string
 }
 ```
+
+> `AuditEvent` y `Orden` (con persistencia DB) viven solo en `con-db(f2)`.
 
 ## Estado del servidor — TanStack Query
 
@@ -98,16 +103,18 @@ Query por solapa:
 useQuery({ queryKey: ['minutas', estado], queryFn: () => fetchMinutas(estado) })
 ```
 
-Tras cada mutación, invalidar las queries afectadas:
+Tras marcar como enviado, invalidar:
 ```ts
 useMutation({
-  mutationFn: aprobarMinuta,
+  mutationFn: marcarEnviado,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['minutas', 'BORRADOR'] })
-    queryClient.invalidateQueries({ queryKey: ['minutas', 'APROBADO'] })
+    queryClient.invalidateQueries({ queryKey: ['minutas', 'ENVIADO'] })
   }
 })
 ```
+
+Query keys MVP: `['minutas', 'BORRADOR']`, `['minutas', 'ENVIADO']`, `['plantilla']`, `['config-dj']`.
 
 No usar `useState` para datos que vienen del servidor. Solo `useState` para estado de UI (drawer abierto/cerrado, paso del modal de upload).
 
@@ -126,7 +133,8 @@ No usar `useState` para datos que vienen del servidor. Solo `useState` para esta
 ## Layout
 
 - Sidebar fija de 240px a la izquierda, contenido principal ocupa el resto
-- Sidebar muestra badge con contador en: Borradores, Aprobados, Enviados, Alertas
+- Sidebar muestra badge con contador en: Borradores, Enviados
+- Items de navegación: Borradores | Enviados | — | Plantilla Estándar | Config DJ
 - Botón "Subir Excel" en la parte inferior del sidebar, sobre el avatar/logout
 - `AppLayout.tsx` usa `<Outlet />` de React Router para el contenido
 
@@ -138,11 +146,9 @@ Campos visibles en la card:
 - `cantidad × precio moneda` (ej: `100 × $1.250,00 ARS`)
 - Condición de liquidación
 - Fecha y hora de operación (formato `dd/MM/yyyy HH:mm`)
-- Badge de estado
-- Ícono DJ si `dj_aplicada = true`
+- Badge de estado (BORRADOR / ENVIADO)
+- Ícono ⚠ si `dj_aplicada = true`
 - Ícono lápiz si `texto_editado = true`
-
-Card ALERTA: borde rojo (`border-red-500`), muestra tiempo transcurrido desde `creado_en`.
 
 Click en card → abre `MinutaDrawer`.
 
@@ -150,17 +156,14 @@ Click en card → abre `MinutaDrawer`.
 
 - Ancho 600px, se abre desde la derecha
 - Header: nombre cliente + cuentas + badge estado
-- Textarea editable solo cuando `estado === 'BORRADOR'`; en otros estados modo lectura
-- Botón "Copiar al portapapeles" (Clipboard API nativa) en estados APROBADO, ENVIADO, ALERTA, CONFIRMADO
+- Textarea editable solo cuando `estado === 'BORRADOR'`; en ENVIADO modo lectura
+- Botón "Copiar contenido" (Clipboard API nativa) — visible siempre
 - Badge "Editado manualmente" visible si `texto_editado = true`
-- Sección DJ colapsable si `dj_aplicada = true`
+- Sección DJ colapsable si `dj_aplicada = true` — muestra ⚠ + texto de alerta
 - Acciones según estado:
-  - BORRADOR → [Guardar edición] [Aprobar]
-  - APROBADO → [Copiar texto] [Marcar como Enviada]
-  - ENVIADO → [Copiar texto] [Registrar Confirmación]
-  - ALERTA → [Registrar Confirmación]
-  - CONFIRMADO → sin acciones
-- Sección Audit Trail colapsable al final, colapsada por defecto
+  - BORRADOR → [Guardar edición] [Copiar contenido] [Enviado]
+  - ENVIADO → [Copiar contenido]
+- Sin sección Audit Trail en el MVP
 
 ## ExcelUploadModal
 

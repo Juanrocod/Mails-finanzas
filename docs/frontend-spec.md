@@ -1,7 +1,7 @@
-# Frontend Spec — Sistema de Gestión de Órdenes Bursátiles
+# Frontend Spec — Sistema de Gestión de Órdenes Bursátiles (MVP)
 
-**Versión:** 1.0
-**Fecha:** 2026-06-13
+**Versión:** 2.0 (MVP sin persistencia — ver ADR-0006)
+**Fecha:** 2026-06-14
 **Stack:** React 18 + TypeScript + Vite + shadcn/ui + TanStack Query + React Router v6
 
 ---
@@ -13,12 +13,12 @@
 | `/login` | `LoginPage` | Formulario usuario + contraseña |
 | `/login/2fa` | `TwoFactorPage` | Ingreso del código TOTP |
 | `/dashboard/borradores` | `DashboardPage` | Lista de Minutas en BORRADOR |
-| `/dashboard/aprobados` | `DashboardPage` | Lista de Minutas en APROBADO |
 | `/dashboard/enviados` | `DashboardPage` | Lista de Minutas en ENVIADO |
-| `/dashboard/confirmados` | `DashboardPage` | Lista de Minutas en CONFIRMADO |
-| `/dashboard/alertas` | `DashboardPage` | Lista de Minutas en ALERTA |
-| `/dashboard/audit` | `AuditPage` | Exportación global del Audit Trail |
+| `/dashboard/plantilla` | `PlantillaPage` | Editor de plantilla estándar de mail |
+| `/dashboard/config-dj` | `ConfigDJPage` | Toggle y texto de alerta para DJ |
 | `/` | redirect | Redirige a `/dashboard/borradores` si autenticado, sino `/login` |
+
+> Rutas eliminadas respecto al spec original: `/dashboard/aprobados`, `/dashboard/confirmados`, `/dashboard/alertas`, `/dashboard/audit`.
 
 ---
 
@@ -31,13 +31,11 @@
 │  [Logo / Nombre sistema]   │  [Header: título solapa +   │
 │                            │   badge con contador]        │
 │  ● Borradores  [badge N]   │                             │
-│  ○ Aprobados   [badge N]   │  [Lista de MinutaCards]     │
-│  ○ Enviados    [badge N]   │                             │
-│  ○ Confirmados             │                             │
-│  ○ Alertas     [badge N]   │                             │
+│  ○ Enviados    [badge N]   │  [Lista de MinutaCards]     │
 │  ─────────────────────     │                             │
-│  ○ Audit Trail             │                             │
-│                            │                             │
+│  ○ Plantilla Estándar      │                             │
+│  ○ Config DJ               │                             │
+│  ─────────────────────     │                             │
 │  [Subir Excel]  ← botón    │                             │
 │  ─────────────────────     │                             │
 │  [Avatar] Middle Office    │                             │
@@ -56,13 +54,11 @@ Card en la lista del Dashboard. Muestra:
 - Cantidad × Precio (Moneda)
 - Condición de liquidación (CI / 24HS / 48HS)
 - Fecha y hora de la operación
-- Badge de estado (BORRADOR / APROBADO / ENVIADO / CONFIRMADO / ALERTA)
+- Badge de estado (BORRADOR / ENVIADO)
 - Indicador visual si tiene DJ incluida
 - Indicador visual si el texto fue editado manualmente
 
 Al hacer click → abre el `MinutaDrawer`.
-
-**Caso especial ALERTA:** card con borde rojo y badge rojo. Muestra tiempo transcurrido desde el envío.
 
 ---
 
@@ -75,27 +71,24 @@ Panel lateral que se abre desde la derecha (ancho ~600px). Contenido:
 
 **Sección: Texto de la Minuta**
 - Textarea editable (solo en estado BORRADOR)
-- En otros estados: texto en modo lectura + botón "Copiar al portapapeles"
+- En estado ENVIADO: texto en modo lectura
+- Botón "Copiar contenido" (Clipboard API nativa) — visible siempre
 - Badge "Editado manualmente" si `texto_editado = true`
 
 **Sección: DJ (si aplica)**
-- Muestra tipo de DJ incluida
-- Texto completo del template aplicado (colapsable)
+- Muestra indicador de DJ incluida con ícono triángulo ⚠
+- Texto completo del alerta (colapsable)
 
 **Sección: Acciones**
 Según el estado actual:
+
 | Estado | Acciones disponibles |
 |--------|---------------------|
-| BORRADOR | [Aprobar] [Guardar edición] |
-| APROBADO | [Marcar como Enviada] [Copiar texto] |
-| ENVIADO | [Registrar Confirmación] [Copiar texto] |
-| ALERTA | [Registrar Confirmación] |
-| CONFIRMADO | — (solo lectura) |
+| BORRADOR | [Guardar edición] [Copiar contenido] [Enviado] |
+| ENVIADO | [Copiar contenido] |
 
-**Sección: Audit Trail (colapsable)**
-- Lista cronológica de AuditEvents de la orden
-- Cada evento: acción + usuario + timestamp + IP
-- Colapsada por defecto
+> "Enviado" marca la minuta como ENVIADO y la mueve al tab Enviados.  
+> No hay botón "Aprobar": el flujo es editar → copiar → marcar enviado.
 
 ---
 
@@ -110,11 +103,20 @@ Flujo:
 
 ---
 
-### `AuditPage`
-Tab del sidebar. Permite:
-- Filtrar por rango de fechas
-- Ver tabla de eventos (orden, acción, usuario, timestamp)
-- Botón "Exportar a Excel" y "Exportar a PDF" → descarga directa del endpoint del backend
+### `PlantillaPage`
+Tab del sidebar. Editor de texto (Textarea grande) con la plantilla estándar de mail.
+- Carga el texto con `GET /plantilla`
+- Botón "Guardar" → `PATCH /plantilla`
+- Cambios afectan minutas de la sesión actual (en RAM)
+
+---
+
+### `ConfigDJPage`
+Tab del sidebar. Configuración de Declaración Jurada:
+- Toggle "DJ activa" (Switch shadcn/ui)
+- Textarea "Texto de alerta" — el texto que aparece con ⚠ en la minuta cuando la DJ está activa
+- Botón "Guardar" → `PATCH /config/dj`
+- Carga con `GET /config/dj`
 
 ---
 
@@ -131,27 +133,35 @@ Tab del sidebar. Permite:
 - `access_token` en memoria (variable de módulo en el cliente Axios)
 - `refresh_token` en httpOnly cookie (si el backend lo soporta) o en memoria
 - Interceptor Axios: si recibe 401 → intenta refresh → si falla → redirect a `/login`
-- Al cerrar sesión: POST `/auth/logout` + limpiar tokens
+- Al cerrar sesión: POST `/auth/logout` + limpiar tokens + las minutas en RAM desaparecen
 
 ---
 
 ## Estado y data fetching
 
-```
+```ts
+// Minutas por estado
 useQuery(['minutas', estado], () => fetchMinutas(estado))
-  → lista de cards por solapa
 
-useMutation(aprobarMinuta, {
+// Marcar como enviado
+useMutation(marcarEnviado, {
   onSuccess: () => {
-    queryClient.invalidateQueries(['minutas', 'borradores'])
-    queryClient.invalidateQueries(['minutas', 'aprobados'])
+    queryClient.invalidateQueries(['minutas', 'BORRADOR'])
+    queryClient.invalidateQueries(['minutas', 'ENVIADO'])
     cerrarDrawer()
   }
 })
+
+// Plantilla
+useQuery(['plantilla'], fetchPlantilla)
+useMutation(guardarPlantilla)
+
+// Config DJ
+useQuery(['config-dj'], fetchConfigDJ)
+useMutation(guardarConfigDJ)
 ```
 
-Queries por solapa: `['minutas', 'borradores']`, `['minutas', 'aprobados']`, etc.
-Refetch automático al volver a enfocar la ventana (TanStack Query default).
+Query keys: `['minutas', 'BORRADOR']`, `['minutas', 'ENVIADO']`, `['plantilla']`, `['config-dj']`.
 
 ---
 
@@ -195,15 +205,15 @@ frontend/
 │   │   ├── LoginPage.tsx
 │   │   ├── TwoFactorPage.tsx
 │   │   ├── DashboardPage.tsx
-│   │   └── AuditPage.tsx
+│   │   ├── PlantillaPage.tsx
+│   │   └── ConfigDJPage.tsx
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── AppLayout.tsx       ← sidebar + outlet
 │   │   │   └── Sidebar.tsx
 │   │   ├── minutas/
 │   │   │   ├── MinutaCard.tsx
-│   │   │   ├── MinutaDrawer.tsx
-│   │   │   └── AuditTrailSection.tsx
+│   │   │   └── MinutaDrawer.tsx
 │   │   ├── upload/
 │   │   │   └── ExcelUploadModal.tsx
 │   │   └── ui/                     ← componentes shadcn/ui (auto-generados)
@@ -212,7 +222,8 @@ frontend/
 │   │   ├── auth.ts
 │   │   ├── minutas.ts
 │   │   ├── upload.ts
-│   │   └── audit.ts
+│   │   ├── plantilla.ts
+│   │   └── configDJ.ts
 │   ├── hooks/
 │   │   ├── useAuth.ts
 │   │   └── useMinutas.ts
@@ -223,3 +234,5 @@ frontend/
 ├── package.json
 └── vite.config.ts
 ```
+
+> Eliminados respecto al spec original: `AuditPage.tsx`, `AuditTrailSection.tsx`, `audit.ts`.
