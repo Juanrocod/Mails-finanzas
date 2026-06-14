@@ -1,3 +1,4 @@
+import type React from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { FileText, PenLine } from 'lucide-react'
@@ -15,12 +16,15 @@ const ESTADO_BADGE: Record<string, string> = {
 }
 
 function formatPrecio(precio: number, moneda: string): string {
-  const currency = moneda === 'USD' ? 'USD' : 'ARS'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(precio)
+  try {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: moneda,
+      minimumFractionDigits: 2,
+    }).format(precio)
+  } catch {
+    return `${moneda} ${precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
+  }
 }
 
 interface Props {
@@ -33,6 +37,14 @@ export default function MinutaCard({ orden, onClick }: Props) {
 
   return (
     <Card
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
       className={cn(
         'p-4 cursor-pointer hover:shadow-md transition-all select-none',
         isAlerta && 'border-red-400 hover:border-red-500'

@@ -40,13 +40,17 @@ interface Props {
 
 export default function MinutaDrawer({ orden, onClose }: Props) {
   const [texto, setTexto] = useState('')
+  const [mutationError, setMutationError] = useState<string | null>(null)
   const aprobar = useAprobarMinuta()
   const enviar = useMarcarEnviada()
   const confirmar = useRegistrarConfirmacion()
   const editarTexto = useEditarTexto()
 
   useEffect(() => {
-    if (orden) setTexto(orden.texto_minuta)
+    if (orden) {
+      setTexto(orden.texto_minuta)
+      setMutationError(null)
+    }
   }, [orden?.id])
 
   const isLoading =
@@ -57,30 +61,54 @@ export default function MinutaDrawer({ orden, onClose }: Props) {
 
   async function handleGuardar() {
     if (!orden) return
-    await editarTexto.mutateAsync({ ordenId: orden.id, texto })
+    try {
+      setMutationError(null)
+      await editarTexto.mutateAsync({ ordenId: orden.id, texto })
+    } catch {
+      setMutationError('Error al guardar la edición. Intentá de nuevo.')
+    }
   }
 
   async function handleAprobar() {
     if (!orden) return
-    await aprobar.mutateAsync(orden.id)
-    onClose()
+    try {
+      setMutationError(null)
+      await aprobar.mutateAsync(orden.id)
+      onClose()
+    } catch {
+      setMutationError('Error al aprobar la Minuta. Intentá de nuevo.')
+    }
   }
 
   async function handleEnviar() {
     if (!orden) return
-    await enviar.mutateAsync(orden.id)
-    onClose()
+    try {
+      setMutationError(null)
+      await enviar.mutateAsync(orden.id)
+      onClose()
+    } catch {
+      setMutationError('Error al marcar como enviada. Intentá de nuevo.')
+    }
   }
 
   async function handleConfirmar() {
     if (!orden) return
-    await confirmar.mutateAsync(orden.id)
-    onClose()
+    try {
+      setMutationError(null)
+      await confirmar.mutateAsync(orden.id)
+      onClose()
+    } catch {
+      setMutationError('Error al registrar la confirmación. Intentá de nuevo.')
+    }
   }
 
-  function handleCopiar() {
+  async function handleCopiar() {
     if (!orden) return
-    navigator.clipboard.writeText(orden.texto_minuta)
+    try {
+      await navigator.clipboard.writeText(orden.texto_minuta)
+    } catch {
+      // clipboard unavailable (HTTP origin or WebView) — silently ignore for now
+    }
   }
 
   const isBorrador = orden?.estado === 'BORRADOR'
@@ -175,6 +203,11 @@ export default function MinutaDrawer({ orden, onClose }: Props) {
               <Separator />
               <section className="space-y-3">
                 <h3 className="text-sm font-medium text-slate-700">Acciones</h3>
+                {mutationError && (
+                  <p role="alert" className="text-xs text-red-600 bg-red-50 rounded px-2 py-1.5">
+                    {mutationError}
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {orden.estado === 'BORRADOR' && (
                     <>

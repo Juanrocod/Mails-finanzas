@@ -22,6 +22,7 @@ export function useAprobarMinuta() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['minutas', 'BORRADOR' as EstadoMinuta] })
       qc.invalidateQueries({ queryKey: ['minutas', 'APROBADO' as EstadoMinuta] })
+      qc.invalidateQueries({ queryKey: ['audit'] })
     },
   })
 }
@@ -33,6 +34,7 @@ export function useMarcarEnviada() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['minutas', 'APROBADO' as EstadoMinuta] })
       qc.invalidateQueries({ queryKey: ['minutas', 'ENVIADO' as EstadoMinuta] })
+      qc.invalidateQueries({ queryKey: ['audit'] })
     },
   })
 }
@@ -45,6 +47,7 @@ export function useRegistrarConfirmacion() {
       qc.invalidateQueries({ queryKey: ['minutas', 'ENVIADO' as EstadoMinuta] })
       qc.invalidateQueries({ queryKey: ['minutas', 'ALERTA' as EstadoMinuta] })
       qc.invalidateQueries({ queryKey: ['minutas', 'CONFIRMADO' as EstadoMinuta] })
+      qc.invalidateQueries({ queryKey: ['audit'] })
     },
   })
 }
@@ -56,6 +59,7 @@ export function useEditarTexto() {
       editarTexto(ordenId, texto),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['minutas', 'BORRADOR' as EstadoMinuta] })
+      qc.invalidateQueries({ queryKey: ['audit'] })
     },
   })
 }
