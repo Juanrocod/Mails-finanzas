@@ -1,16 +1,14 @@
+// frontend/src/pages/DashboardPage.tsx
 import { useState } from 'react'
 import { Skeleton } from '../components/ui/skeleton'
 import MinutaCard from '../components/minutas/MinutaCard'
 import MinutaDrawer from '../components/minutas/MinutaDrawer'
 import { useMinutas } from '../hooks/useMinutas'
-import type { EstadoMinuta } from '../types/domain'
+import type { EstadoMinuta, Minuta } from '../types/domain'
 
 const ESTADO_TITULO: Record<EstadoMinuta, string> = {
   BORRADOR: 'Borradores',
-  APROBADO: 'Aprobados',
   ENVIADO: 'Enviados',
-  CONFIRMADO: 'Confirmados',
-  ALERTA: 'Alertas',
 }
 
 interface Props {
@@ -19,8 +17,8 @@ interface Props {
 
 export default function DashboardPage({ estado }: Props) {
   const { data, isLoading, isError } = useMinutas(estado)
-  const [selectedOrdenId, setSelectedOrdenId] = useState<string | null>(null)
-  const selectedOrden = data?.items.find((o) => o.id === selectedOrdenId) ?? null
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectedMinuta: Minuta | null = data?.items.find((m) => m.id === selectedId) ?? null
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -30,7 +28,7 @@ export default function DashboardPage({ estado }: Props) {
         </h2>
         {data && (
           <span className="text-sm text-slate-400">
-            {data.total} {data.total === 1 ? 'orden' : 'órdenes'}
+            {data.total} {data.total === 1 ? 'minuta' : 'minutas'}
           </span>
         )}
       </div>
@@ -46,32 +44,36 @@ export default function DashboardPage({ estado }: Props) {
       {isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <p className="text-sm text-red-700">
-            Error al cargar las órdenes. Verificá tu conexión e intentá de nuevo.
+            Error al cargar las minutas. Verificá tu conexión e intentá de nuevo.
           </p>
         </div>
       )}
 
       {data && data.items.length === 0 && !isLoading && (
         <div className="text-center py-16">
-          <p className="text-sm text-slate-400">No hay órdenes en estado {estado}.</p>
+          <p className="text-sm text-slate-400">
+            {estado === 'BORRADOR'
+              ? 'No hay minutas en borrador. Subí un Excel para comenzar.'
+              : 'No hay minutas enviadas aún.'}
+          </p>
         </div>
       )}
 
       {data && data.items.length > 0 && (
         <div className="space-y-3">
-          {data.items.map((orden) => (
+          {data.items.map((minuta) => (
             <MinutaCard
-              key={orden.id}
-              orden={orden}
-              onClick={() => setSelectedOrdenId(orden.id)}
+              key={minuta.id}
+              minuta={minuta}
+              onClick={() => setSelectedId(minuta.id)}
             />
           ))}
         </div>
       )}
 
       <MinutaDrawer
-        orden={selectedOrden}
-        onClose={() => setSelectedOrdenId(null)}
+        minuta={selectedMinuta}
+        onClose={() => setSelectedId(null)}
       />
     </div>
   )
