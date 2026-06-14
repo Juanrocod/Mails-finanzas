@@ -6,6 +6,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.routers import auth, uploads, orders, dashboard
 from app.routers import audit as audit_router
+from app.routers import session as session_router
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -26,6 +27,7 @@ app.include_router(uploads.router)
 app.include_router(orders.router)
 app.include_router(dashboard.router)
 app.include_router(audit_router.router)
+app.include_router(session_router.router)
 
 
 @app.get("/health")
