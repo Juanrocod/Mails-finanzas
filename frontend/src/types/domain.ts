@@ -1,11 +1,10 @@
-export type EstadoMinuta = 'BORRADOR' | 'APROBADO' | 'ENVIADO' | 'CONFIRMADO' | 'ALERTA'
+// frontend/src/types/domain.ts
+export type EstadoMinuta = 'BORRADOR' | 'ENVIADO'
 export type TipoOperacion = 'COMPRA' | 'VENTA'
 export type Liquidacion = 'CI' | '24HS' | '48HS'
-export type AccionAudit = 'CREADA' | 'EDITADA' | 'APROBADA' | 'ENVIADA' | 'CONFIRMADA' | 'ALERTA_GENERADA'
 
-export interface Orden {
+export interface Minuta {
   id: string
-  excel_upload_id: string
   cliente_nombre: string
   cliente_email: string
   cuenta_comitente: string
@@ -18,38 +17,34 @@ export interface Orden {
   liquidacion: Liquidacion
   fecha_operacion: string
   dj_aplicada: boolean
-  dj_tipo: string | null
+  dj_texto: string | null
   estado: EstadoMinuta
   texto_minuta: string
   texto_editado: boolean
-  created_at: string
-  updated_at: string
+  creado_en: string
 }
 
-export interface AuditEvent {
-  id: string
-  orden_id: string
-  usuario_id: string | null
-  accion: AccionAudit
-  ip_origen: string | null
-  timestamp: string
-  detalle: Record<string, unknown> | null
-}
-
-export interface DashboardPage {
-  items: Orden[]
+export interface SessionMinutasResponse {
+  items: Minuta[]
   total: number
-  page: number
-  size: number
+}
+
+export interface ConfigDJ {
+  activa: boolean
+  texto_alerta: string
+}
+
+export interface Plantilla {
+  texto: string
 }
 
 export interface UploadResponse {
-  upload_id: string
   nombre_archivo: string
   total_ordenes: number
   ordenes_validas: number
   ordenes_con_error: number
   errors: { fila: number; mensaje: string }[]
+  minutas: Minuta[]
 }
 
 export interface LoginResponse {
