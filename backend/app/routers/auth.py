@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
     create_access_token,
+    create_pending_2fa_token,
     create_refresh_token,
     decode_token,
     verify_totp,
@@ -36,10 +37,7 @@ def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
     user = authenticate_user(body.username, body.password, db)
     if not user:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    pending_token = create_access_token(
-        subject=str(user.id),
-        expires_delta=timedelta(minutes=5),
-    )
+    pending_token = create_pending_2fa_token(subject=str(user.id))
     return PendingTokenResponse(
         pending_token=pending_token,
         message="Ingrese el código de su autenticador",
@@ -50,7 +48,7 @@ def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
 def verify_totp_endpoint(body: VerifyTOTPRequest, db: Session = Depends(get_db)):
     try:
         payload = decode_token(body.pending_token)
-        if payload.get("type") != "access":
+        if payload.get("type") != "pending_2fa":
             raise ValueError
     except (JWTError, ValueError):
         raise HTTPException(status_code=401, detail="Token pendiente inválido o expirado")
@@ -75,7 +73,7 @@ def verify_totp_endpoint(body: VerifyTOTPRequest, db: Session = Depends(get_db))
 
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh(body: RefreshRequest):
+def refresh(body: RefreshRequest, db: Session = Depends(get_db)):
     try:
         payload = decode_token(body.refresh_token)
         if payload.get("type") != "refresh":
@@ -83,11 +81,15 @@ def refresh(body: RefreshRequest):
     except (JWTError, ValueError):
         raise HTTPException(status_code=401, detail="Refresh token inválido")
 
+    user = db.query(User).filter(User.id == UUID(payload["sub"]), User.is_active == True).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuario no autorizado")
+
     access_token = create_access_token(
-        subject=payload["sub"],
+        subject=str(user.id),
         expires_delta=timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS),
     )
-    refresh_token = create_refresh_token(subject=payload["sub"])
+    refresh_token = create_refresh_token(subject=str(user.id))
 
     return TokenResponse(
         access_token=access_token,

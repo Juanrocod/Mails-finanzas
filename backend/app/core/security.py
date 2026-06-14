@@ -30,6 +30,16 @@ def create_access_token(subject: str, expires_delta: timedelta) -> str:
     )
 
 
+def create_pending_2fa_token(subject: str) -> str:
+    from app.core.config import settings
+    expire = datetime.now(UTC) + timedelta(minutes=5)
+    return jwt.encode(
+        {"sub": subject, "exp": expire, "type": "pending_2fa"},
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+
 def create_refresh_token(subject: str) -> str:
     from app.core.config import settings
     expire = datetime.now(UTC) + timedelta(hours=settings.REFRESH_TOKEN_EXPIRE_HOURS)
