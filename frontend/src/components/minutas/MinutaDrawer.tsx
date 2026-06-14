@@ -1,5 +1,6 @@
+// frontend/src/components/minutas/MinutaDrawer.tsx
 import { useEffect, useState } from 'react'
-import { Copy, PenLine, ChevronDown } from 'lucide-react'
+import { Copy, PenLine, ChevronDown, AlertTriangle } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -16,128 +17,94 @@ import {
   CollapsibleTrigger,
 } from '../ui/collapsible'
 import { cn } from '../../lib/utils'
-import AuditTrailSection from './AuditTrailSection'
-import {
-  useAprobarMinuta,
-  useMarcarEnviada,
-  useRegistrarConfirmacion,
-  useEditarTexto,
-} from '../../hooks/useMinutas'
-import type { Orden } from '../../types/domain'
+import { useMarcarEnviado, useEditarTexto } from '../../hooks/useMinutas'
+import type { Minuta } from '../../types/domain'
 
 const ESTADO_BADGE: Record<string, string> = {
   BORRADOR: 'bg-slate-100 text-slate-700',
-  APROBADO: 'bg-blue-100 text-blue-700',
   ENVIADO: 'bg-yellow-100 text-yellow-800',
-  CONFIRMADO: 'bg-green-100 text-green-700',
-  ALERTA: 'bg-red-100 text-red-700',
 }
 
 interface Props {
-  orden: Orden | null
+  minuta: Minuta | null
   onClose: () => void
 }
 
-export default function MinutaDrawer({ orden, onClose }: Props) {
+export default function MinutaDrawer({ minuta, onClose }: Props) {
   const [texto, setTexto] = useState('')
   const [mutationError, setMutationError] = useState<string | null>(null)
-  const aprobar = useAprobarMinuta()
-  const enviar = useMarcarEnviada()
-  const confirmar = useRegistrarConfirmacion()
+  const [copied, setCopied] = useState(false)
+  const marcarEnviado = useMarcarEnviado()
   const editarTexto = useEditarTexto()
 
   useEffect(() => {
-    if (orden) {
-      setTexto(orden.texto_minuta)
+    if (minuta) {
+      setTexto(minuta.texto_minuta)
       setMutationError(null)
+      setCopied(false)
     }
-  }, [orden?.id])
+  }, [minuta?.id])
 
-  const isLoading =
-    aprobar.isPending ||
-    enviar.isPending ||
-    confirmar.isPending ||
-    editarTexto.isPending
+  const isLoading = marcarEnviado.isPending || editarTexto.isPending
+  const isBorrador = minuta?.estado === 'BORRADOR'
+  const textoModificado = texto !== minuta?.texto_minuta
 
   async function handleGuardar() {
-    if (!orden) return
+    if (!minuta) return
     try {
       setMutationError(null)
-      await editarTexto.mutateAsync({ ordenId: orden.id, texto })
+      await editarTexto.mutateAsync({ minutaId: minuta.id, texto })
     } catch {
       setMutationError('Error al guardar la edición. Intentá de nuevo.')
     }
   }
 
-  async function handleAprobar() {
-    if (!orden) return
+  async function handleEnviado() {
+    if (!minuta) return
     try {
       setMutationError(null)
-      await aprobar.mutateAsync(orden.id)
-      onClose()
-    } catch {
-      setMutationError('Error al aprobar la Minuta. Intentá de nuevo.')
-    }
-  }
-
-  async function handleEnviar() {
-    if (!orden) return
-    try {
-      setMutationError(null)
-      await enviar.mutateAsync(orden.id)
+      await marcarEnviado.mutateAsync(minuta.id)
       onClose()
     } catch {
       setMutationError('Error al marcar como enviada. Intentá de nuevo.')
     }
   }
 
-  async function handleConfirmar() {
-    if (!orden) return
-    try {
-      setMutationError(null)
-      await confirmar.mutateAsync(orden.id)
-      onClose()
-    } catch {
-      setMutationError('Error al registrar la confirmación. Intentá de nuevo.')
-    }
-  }
-
   async function handleCopiar() {
-    if (!orden) return
+    const textToCopy = isBorrador ? texto : (minuta?.texto_minuta ?? '')
     try {
-      await navigator.clipboard.writeText(orden.texto_minuta)
+      await navigator.clipboard.writeText(textToCopy)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch {
-      // clipboard unavailable (HTTP origin or WebView) — silently ignore for now
+      // clipboard unavailable — silently ignore
     }
   }
-
-  const isBorrador = orden?.estado === 'BORRADOR'
-  const textoModificado = texto !== orden?.texto_minuta
 
   return (
-    <Sheet open={orden !== null} onOpenChange={(open) => { if (!open) onClose() }}>
+    <Sheet open={minuta !== null} onOpenChange={(open) => { if (!open) onClose() }}>
       <SheetContent
         side="right"
         className="w-[600px] sm:max-w-[600px] p-0 flex flex-col overflow-hidden"
       >
-        {orden && (
+        {minuta && (
           <>
             <SheetHeader className="px-6 py-4 border-b border-slate-200 shrink-0">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <SheetTitle className="text-base font-semibold truncate">
-                    {orden.cliente_nombre}
+                    {minuta.cliente_nombre}
                   </SheetTitle>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Comitente: {orden.cuenta_comitente} · Cotapartista:{' '}
-                    {orden.cuenta_cotapartista}
+                    Comitente: {minuta.cuenta_comitente} · Cotapartista:{' '}
+                    {minuta.cuenta_cotapartista}
                   </p>
                 </div>
                 <Badge
                   variant="secondary"
-                  className={cn('shrink-0 text-xs', ESTADO_BADGE[orden.estado])}
+                  className={cn('shrink-0 text-xs', ESTADO_BADGE[minuta.estado])}
                 >
-                  {orden.estado}
+                  {minuta.estado}
                 </Badge>
               </div>
             </SheetHeader>
@@ -148,23 +115,21 @@ export default function MinutaDrawer({ orden, onClose }: Props) {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-slate-700">Texto de la Minuta</h3>
                   <div className="flex items-center gap-2">
-                    {orden.texto_editado && (
+                    {minuta.texto_editado && (
                       <span className="flex items-center gap-1 text-xs text-amber-600">
                         <PenLine className="h-3 w-3" />
                         Editado
                       </span>
                     )}
-                    {!isBorrador && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 gap-1.5 text-xs"
-                        onClick={handleCopiar}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        Copiar
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs"
+                      onClick={handleCopiar}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {copied ? 'Copiado' : 'Copiar contenido'}
+                    </Button>
                   </div>
                 </div>
                 {isBorrador ? (
@@ -176,24 +141,27 @@ export default function MinutaDrawer({ orden, onClose }: Props) {
                   />
                 ) : (
                   <pre className="text-xs font-mono bg-slate-50 border border-slate-200 rounded-md p-3 whitespace-pre-wrap break-words max-h-80 overflow-y-auto">
-                    {orden.texto_minuta}
+                    {minuta.texto_minuta}
                   </pre>
                 )}
               </section>
 
               {/* DJ section */}
-              {orden.dj_aplicada && (
+              {minuta.dj_aplicada && minuta.dj_texto && (
                 <>
                   <Separator />
                   <Collapsible>
                     <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-slate-700 hover:text-slate-900 py-1 group">
-                      <span>Declaración Jurada — {orden.dj_tipo ?? 'Incluida'}</span>
+                      <span className="flex items-center gap-1.5">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        Declaración Jurada incluida
+                      </span>
                       <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-data-[state=open]:rotate-180" />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pt-2">
-                      <p className="text-xs text-slate-500">
-                        La Declaración Jurada está incluida al final del texto de la Minuta.
-                      </p>
+                      <pre className="text-xs text-slate-600 bg-amber-50 border border-amber-100 rounded p-2 whitespace-pre-wrap">
+                        {minuta.dj_texto}
+                      </pre>
                     </CollapsibleContent>
                   </Collapsible>
                 </>
@@ -209,7 +177,7 @@ export default function MinutaDrawer({ orden, onClose }: Props) {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {orden.estado === 'BORRADOR' && (
+                  {isBorrador && (
                     <>
                       <Button
                         variant="outline"
@@ -221,34 +189,20 @@ export default function MinutaDrawer({ orden, onClose }: Props) {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={handleAprobar}
+                        onClick={handleEnviado}
                         disabled={isLoading}
                       >
-                        Aprobar
+                        Enviado
                       </Button>
                     </>
                   )}
-                  {orden.estado === 'APROBADO' && (
-                    <Button size="sm" onClick={handleEnviar} disabled={isLoading}>
-                      Marcar como Enviada
-                    </Button>
-                  )}
-                  {(orden.estado === 'ENVIADO' || orden.estado === 'ALERTA') && (
-                    <Button size="sm" onClick={handleConfirmar} disabled={isLoading}>
-                      Registrar Confirmación
-                    </Button>
-                  )}
-                  {orden.estado === 'CONFIRMADO' && (
+                  {minuta.estado === 'ENVIADO' && (
                     <p className="text-xs text-slate-500 py-1">
-                      Orden confirmada. Sin acciones disponibles.
+                      Minuta enviada. Podés copiar el contenido si necesitás reenviar.
                     </p>
                   )}
                 </div>
               </section>
-
-              {/* Audit Trail */}
-              <Separator />
-              <AuditTrailSection ordenId={orden.id} />
             </div>
           </>
         )}
