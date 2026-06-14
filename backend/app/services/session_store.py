@@ -63,6 +63,11 @@ def clear_session(user_id: str) -> None:
     _store.pop(user_id, None)
 
 
+def clear_borradores(user_id: str) -> None:
+    session = _get_or_create(user_id)
+    session.minutas = [m for m in session.minutas if m.estado != "BORRADOR"]
+
+
 def add_minutas(user_id: str, minutas: list[MinutaSession]) -> None:
     _get_or_create(user_id).minutas.extend(minutas)
 

@@ -81,6 +81,7 @@ def upload_excel(
             creado_en=now,
         ))
 
+    session_store.clear_borradores(user_id)
     session_store.add_minutas(user_id, minutas)
 
     return UploadMVPResponse(

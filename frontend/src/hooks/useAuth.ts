@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   login,
   verifyTotp,
+  logout as logoutApi,
   setPendingToken,
   getPendingToken,
   clearPendingToken,
@@ -29,9 +30,15 @@ export function useAuth() {
     navigate('/dashboard/borradores')
   }
 
-  function handleLogout(): void {
-    clearTokens()
-    navigate('/login')
+  async function handleLogout(): Promise<void> {
+    try {
+      await logoutApi()
+    } catch {
+      // continuar aunque falle la red — siempre limpiar estado local
+    } finally {
+      clearTokens()
+      navigate('/login')
+    }
   }
 
   function isAuthenticated(): boolean {

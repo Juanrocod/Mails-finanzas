@@ -10,9 +10,9 @@ import {
 import { Button } from '../ui/button'
 import { cn } from '../../lib/utils'
 import { uploadExcel } from '../../services/upload'
-import type { UploadResponse, EstadoMinuta } from '../../types/domain'
+import type { UploadResponse, EstadoMinuta, SessionMinutasResponse } from '../../types/domain'
 
-type Step = 'select' | 'preview' | 'uploading' | 'done'
+type Step = 'select' | 'warning' | 'preview' | 'uploading' | 'done'
 
 interface Props {
   open: boolean
@@ -27,12 +27,14 @@ export default function ExcelUploadModal({ open, onClose }: Props) {
   const [result, setResult] = useState<UploadResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [pendingBorradores, setPendingBorradores] = useState(0)
 
   function reset() {
     setStep('select')
     setFile(null)
     setResult(null)
     setError(null)
+    setPendingBorradores(0)
   }
 
   function handleClose() {
@@ -47,7 +49,14 @@ export default function ExcelUploadModal({ open, onClose }: Props) {
     }
     setFile(f)
     setError(null)
-    setStep('preview')
+    const cached = qc.getQueryData<SessionMinutasResponse>(['minutas', 'BORRADOR' as EstadoMinuta])
+    const count = cached?.total ?? 0
+    if (count > 0) {
+      setPendingBorradores(count)
+      setStep('warning')
+    } else {
+      setStep('preview')
+    }
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -110,6 +119,25 @@ export default function ExcelUploadModal({ open, onClose }: Props) {
               }}
             />
             {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+          </div>
+        )}
+
+        {step === 'warning' && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-800">
+              Tenés {pendingBorradores}{' '}
+              {pendingBorradores === 1 ? 'mail sin enviar' : 'mails sin enviar'}. Si subís este
+              archivo, se perderán. ¿Querés continuar?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => { setFile(null); setPendingBorradores(0); setStep('select') }}
+              >
+                No
+              </Button>
+              <Button onClick={() => setStep('preview')}>Sí</Button>
+            </div>
           </div>
         )}
 

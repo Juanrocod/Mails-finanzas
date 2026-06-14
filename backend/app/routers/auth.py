@@ -25,6 +25,8 @@ from app.schemas.auth import (
 )
 from app.models.user import User
 from app.services.auth import authenticate_user
+from app.core.dependencies import get_current_user
+from app.services import session_store
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -70,6 +72,11 @@ def verify_totp_endpoint(body: VerifyTOTPRequest, db: Session = Depends(get_db))
         access_token=access_token,
         refresh_token=refresh_token,
     )
+
+
+@router.post("/logout", status_code=204)
+def logout(current_user: User = Depends(get_current_user)):
+    session_store.clear_session(str(current_user.id))
 
 
 @router.post("/refresh", response_model=TokenResponse)

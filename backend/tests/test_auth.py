@@ -68,3 +68,21 @@ def test_protected_endpoint_no_token(client):
 def test_protected_endpoint_with_valid_token(client, auth_headers):
     r = client.get("/session/minutas", headers=auth_headers)
     assert r.status_code == 200
+
+
+def test_logout_clears_session(client, auth_headers, seeded_borrador_minuta):
+    # 1. Verificar que hay minutas en RAM
+    r = client.get("/session/minutas?estado=BORRADOR", headers=auth_headers)
+    assert r.status_code == 200
+    assert r.json()["total"] >= 1, "Setup: debería haber al menos 1 BORRADOR antes del logout"
+
+    # 2. Llamar logout
+    r = client.post("/auth/logout", headers=auth_headers)
+    assert r.status_code == 204
+
+    # 3. Verificar que GET /session/minutas retorna lista vacía
+    r = client.get("/session/minutas?estado=BORRADOR", headers=auth_headers)
+    assert r.status_code == 200
+    assert r.json()["total"] == 0, (
+        f"Esperaba 0 minutas tras logout, pero hay {r.json()['total']}"
+    )

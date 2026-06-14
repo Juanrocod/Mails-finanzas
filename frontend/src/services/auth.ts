@@ -33,3 +33,7 @@ export async function verifyTotp(
   })
   return res.data
 }
+
+export async function logout(): Promise<void> {
+  await api.post('/auth/logout')
+}
