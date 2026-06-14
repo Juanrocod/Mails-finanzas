@@ -6,6 +6,12 @@ export async function fetchAuditTrail(ordenId: string): Promise<AuditEvent[]> {
   return res.data
 }
 
-export function getAuditExcelUrl(ordenId: string): string {
-  return `${import.meta.env.VITE_API_URL}/audit/${ordenId}/export/excel`
+export async function downloadAuditExcel(ordenId: string): Promise<void> {
+  const res = await api.get(`/audit/${ordenId}/export/excel`, { responseType: 'blob' })
+  const url = URL.createObjectURL(res.data as Blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `audit_${ordenId}.xlsx`
+  a.click()
+  URL.revokeObjectURL(url)
 }

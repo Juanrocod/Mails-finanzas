@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Skeleton } from '../components/ui/skeleton'
-import { fetchAuditTrail, getAuditExcelUrl } from '../services/audit'
+import { fetchAuditTrail, downloadAuditExcel } from '../services/audit'
 import type { AccionAudit } from '../types/domain'
 
 const ACCION_LABEL: Record<AccionAudit, string> = {
@@ -38,9 +38,9 @@ export default function AuditPage() {
     setActiveOrdenId(ordenId.trim())
   }
 
-  function handleExportExcel() {
+  async function handleExportExcel() {
     if (!activeOrdenId) return
-    window.location.href = getAuditExcelUrl(activeOrdenId)
+    await downloadAuditExcel(activeOrdenId)
   }
 
   return (

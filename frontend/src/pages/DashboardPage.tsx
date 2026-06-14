@@ -3,7 +3,7 @@ import { Skeleton } from '../components/ui/skeleton'
 import MinutaCard from '../components/minutas/MinutaCard'
 import MinutaDrawer from '../components/minutas/MinutaDrawer'
 import { useMinutas } from '../hooks/useMinutas'
-import type { EstadoMinuta, Orden } from '../types/domain'
+import type { EstadoMinuta } from '../types/domain'
 
 const ESTADO_TITULO: Record<EstadoMinuta, string> = {
   BORRADOR: 'Borradores',
@@ -19,7 +19,8 @@ interface Props {
 
 export default function DashboardPage({ estado }: Props) {
   const { data, isLoading, isError } = useMinutas(estado)
-  const [selectedOrden, setSelectedOrden] = useState<Orden | null>(null)
+  const [selectedOrdenId, setSelectedOrdenId] = useState<string | null>(null)
+  const selectedOrden = data?.items.find((o) => o.id === selectedOrdenId) ?? null
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -62,7 +63,7 @@ export default function DashboardPage({ estado }: Props) {
             <MinutaCard
               key={orden.id}
               orden={orden}
-              onClick={() => setSelectedOrden(orden)}
+              onClick={() => setSelectedOrdenId(orden.id)}
             />
           ))}
         </div>
@@ -70,7 +71,7 @@ export default function DashboardPage({ estado }: Props) {
 
       <MinutaDrawer
         orden={selectedOrden}
-        onClose={() => setSelectedOrden(null)}
+        onClose={() => setSelectedOrdenId(null)}
       />
     </div>
   )
