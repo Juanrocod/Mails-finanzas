@@ -11,7 +11,7 @@ from app.schemas.session import UploadMVPResponse, RowErrorSchema, MinutaSchema
 from app.services.dj_engine import evaluar_reglas, resolver_dj_texto
 from app.services.excel_parser import parse_excel_file
 from app.services.minuta_generator import generate_minuta_text
-from app.services import session_store
+from app.services import session_store, db_config
 from app.services.session_store import MinutaSession
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
@@ -57,7 +57,7 @@ def upload_excel(
         }
         dj_aplica = evaluar_reglas(config, datos_orden)
         dj_texto = resolver_dj_texto(config, datos_orden) if dj_aplica else None
-        plantilla = session_store.get_plantilla(user_id)
+        plantilla = db_config.load_plantilla(db)
         texto = generate_minuta_text(
             plantilla=plantilla,
             cliente_nombre=parsed.cliente_nombre,
