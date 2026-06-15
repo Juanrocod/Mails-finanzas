@@ -1,7 +1,10 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+
+
+SESSION_TTL = timedelta(hours=12)
 
 
 @dataclass
@@ -29,15 +32,22 @@ class MinutaSession:
 @dataclass
 class _SessionData:
     minutas: list[MinutaSession] = field(default_factory=list)
+    last_accessed: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 _store: dict[str, _SessionData] = {}
 
 
 def _get_or_create(user_id: str) -> _SessionData:
-    if user_id not in _store:
-        _store[user_id] = _SessionData()
-    return _store[user_id]
+    session = _store.get(user_id)
+    if session is not None and datetime.now(timezone.utc) - session.last_accessed > SESSION_TTL:
+        del _store[user_id]
+        session = None
+    if session is None:
+        session = _SessionData()
+        _store[user_id] = session
+    session.last_accessed = datetime.now(timezone.utc)
+    return session
 
 
 def clear_session(user_id: str) -> None:

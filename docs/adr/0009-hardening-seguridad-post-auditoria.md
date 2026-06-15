@@ -130,7 +130,63 @@ atacante puede cambiar la contraseña pero no puede autenticarse. El impacto que
 acotado a denegación de servicio (el usuario legítimo no puede entrar hasta que el
 admin genere otro reset token).
 
-### 6. Refresh token — sin revocación en el MVP
+### 6. Session store — TTL de inactividad de 12 horas
+
+**Problema:** las minutas generadas al subir un Excel quedan en el session store
+en RAM hasta que el usuario hace logout explícito. Si el usuario cierra el browser
+sin hacer logout, las minutas persisten en el servidor indefinidamente.
+
+**Comportamiento deseado:**
+- F5 (reload) **no** debe borrar las minutas — el usuario retoma donde estaba una
+  vez que vuelve a autenticarse.
+- Minutos/horas de inactividad deben eventualmente limpiar la sesión sin requerir
+  acción del usuario.
+
+**Decisión:** implementar un TTL de inactividad (`last_accessed_at`) de 12 horas en
+`session_store.py`. La sesión se limpia únicamente en estos tres casos:
+
+1. **Logout explícito** → `POST /auth/logout` llama a `clear_session` inmediatamente.
+2. **TTL de inactividad (12h)** → cualquier acceso al session store después de 12h
+   sin actividad descarta la sesión y crea una nueva vacía de forma transparente.
+3. **Reinicio del proceso** → el store vive en RAM; un deploy o reinicio del servidor
+   lo limpia completamente.
+
+```python
+# session_store.py
+SESSION_TTL = timedelta(hours=12)
+
+@dataclass
+class _SessionData:
+    minutas: list[MinutaSession] = field(default_factory=list)
+    last_accessed: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+def _get_or_create(user_id: str) -> _SessionData:
+    session = _store.get(user_id)
+    if session is not None and datetime.now(timezone.utc) - session.last_accessed > SESSION_TTL:
+        del _store[user_id]
+        session = None
+    if session is None:
+        session = _SessionData()
+        _store[user_id] = session
+    session.last_accessed = datetime.now(timezone.utc)
+    return session
+```
+
+El `beforeunload` fue eliminado de `AppLayout.tsx`. Los browsers no permiten distinguir
+de forma confiable entre F5 y cierre de pestaña — `beforeunload` dispara en ambos casos,
+lo que hacía que un reload borrara las minutas en contra del comportamiento deseado.
+
+**Por qué `last_accessed_at` y no `created_at`:**
+Un TTL fijo desde la creación (upload) penaliza al operador con jornadas largas: si
+sube el Excel a las 8am y trabaja hasta las 9pm, las minutas desaparecen en el medio
+de su trabajo. El TTL de inactividad respeta el flujo de trabajo activo y limpia
+solo cuando el usuario realmente abandonó la sesión.
+
+**Trade-off aceptado:** un operador que trabaja más de 12 horas seguidas sin hacer
+ningún request al servidor perdería las minutas. Aceptable dado el contexto de
+operación bursátil en horario de mercado.
+
+### 7. Refresh token — sin revocación en el MVP
 
 **Problema identificado en auditoría:** los refresh tokens (24hs de vida) no tienen
 mecanismo de revocación server-side. Un logout solo limpia el session store en RAM,
@@ -159,10 +215,14 @@ razones:
   agregar @limiter.limit a /register/confirm)
 - `backend/app/schemas/auth.py` (modifica — @field_validator de contraseña)
 - `backend/app/models/invite_token.py` (modifica — DateTime(timezone=True))
+- `backend/app/services/session_store.py` (modifica — TTL de inactividad 12h)
 - `backend/alembic/versions/0004_security_hardening.py` (nuevo — timezone,
   índice duplicado, drop tablas Fase 2)
 - `backend/tests/conftest.py` (modifica — RATELIMIT_ENABLED reemplazado por
   parámetro nativo de slowapi)
+
+**Frontend:**
+- `frontend/src/components/layout/AppLayout.tsx` (modifica — elimina beforeunload)
 
 ## Consecuencias
 
@@ -193,7 +253,7 @@ razones:
 | Reset sin TOTP | Diseño consciente | Canal de distribución controlado por admin; TOTP sigue siendo requerido para login |
 | Refresh token sin revocación | Fase 2 | TTL reducido a 8hs; tokens en memoria (no storage) |
 | Token de invite expuesto en URL | Fase 2 | TTL de 48hs; canal de distribución controlado |
-| Session store sin TTL | Fase 2 | Un solo worker en MVP; minutas son efímeras por diseño |
+| Session store sin TTL | Resuelto (decisión 6) | TTL idle 12h; se limpia en logout explícito o inactividad |
 
 ## ADRs relacionados
 
