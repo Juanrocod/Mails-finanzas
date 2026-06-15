@@ -20,14 +20,14 @@ paths:
 
 ```
 src/
-├── pages/          ← LoginPage, TwoFactorPage, DashboardPage, AuditPage
+├── pages/          ← LoginPage, TwoFactorPage, DashboardPage, PlantillaPage, ConfigDJPage
 ├── components/
 │   ├── layout/     ← AppLayout.tsx, Sidebar.tsx
-│   ├── minutas/    ← MinutaCard.tsx, MinutaDrawer.tsx, AuditTrailSection.tsx
+│   ├── minutas/    ← MinutaCard.tsx, MinutaDrawer.tsx
 │   ├── upload/     ← ExcelUploadModal.tsx
 │   └── ui/         ← shadcn/ui (auto-generados, no editar a mano)
-├── services/       ← api.ts, auth.ts, minutas.ts, upload.ts, audit.ts
-├── hooks/          ← useAuth.ts, useMinutas.ts
+├── services/       ← api.ts, auth.ts, minutas.ts, upload.ts, plantilla.ts, configDJ.ts
+├── hooks/          ← useAuth.ts, useMinutas.ts, useSession.ts
 └── types/          ← domain.ts (todos los tipos del dominio)
 ```
 
@@ -84,9 +84,23 @@ interface Minuta {
   creado_en: string
 }
 
+// ADR-0007: tipos de DJ extendidos
+type LogicaDJ = 'OR' | 'AND'
+type OperadorDJ = '>' | '<' | '=' | '!=' | '>=' | '<='
+type CampoDJ = 'cantidad' | 'precio' | 'moneda' | 'liquidacion' | 'tipo' | 'instrumento'
+
+interface ReglaDJ {
+  campo: CampoDJ
+  operador: OperadorDJ
+  valor: string
+}
+
 interface ConfigDJ {
   activa: boolean
+  incluir_texto_en_minuta: boolean
   texto_alerta: string
+  reglas: ReglaDJ[]
+  logica: LogicaDJ
 }
 
 interface Plantilla {
@@ -181,6 +195,31 @@ import { es } from 'date-fns/locale'
 
 format(new Date(fecha_operacion), 'dd/MM/yyyy HH:mm', { locale: es })
 ```
+
+## Inserción de variables en textarea (PlantillaPage / ConfigDJPage)
+
+Patrón para insertar un token `{variable}` en la posición del cursor:
+
+```ts
+const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+function insertarVariable(variable: string) {
+  const el = textareaRef.current
+  if (!el) return
+  const start = el.selectionStart
+  const end = el.selectionEnd
+  const nuevo = texto.slice(0, start) + variable + texto.slice(end)
+  setTexto(nuevo)
+  requestAnimationFrame(() => {
+    el.focus()
+    const pos = start + variable.length
+    el.setSelectionRange(pos, pos)
+  })
+}
+```
+
+- `requestAnimationFrame` necesario para restaurar el foco después del re-render.
+- Pasar `ref={textareaRef}` al componente `<Textarea>`.
 
 ## Variable de entorno
 
