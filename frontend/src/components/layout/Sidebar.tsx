@@ -1,8 +1,7 @@
-// frontend/src/components/layout/Sidebar.tsx
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, Send, FileEdit, Settings2, Upload, LogOut } from 'lucide-react'
+import { FileText, Send, FileEdit, Settings2, Upload, LogOut, KeyRound, ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
@@ -10,6 +9,8 @@ import { cn } from '../../lib/utils'
 import { fetchMinutas } from '../../services/minutas'
 import { useAuth } from '../../hooks/useAuth'
 import ExcelUploadModal from '../upload/ExcelUploadModal'
+import ChangePasswordModal from '../profile/ChangePasswordModal'
+import RegenerateTOTPModal from '../profile/RegenerateTOTPModal'
 import type { EstadoMinuta } from '../../types/domain'
 
 function useBadgeCount(estado: EstadoMinuta): number {
@@ -60,6 +61,8 @@ function NavItem({
 export default function Sidebar() {
   const { handleLogout } = useAuth()
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [changePassOpen, setChangePassOpen] = useState(false)
+  const [regenTOTPOpen, setRegenTOTPOpen] = useState(false)
   const borradores = useBadgeCount('BORRADOR')
   const enviados = useBadgeCount('ENVIADO')
 
@@ -96,20 +99,42 @@ export default function Sidebar() {
               </div>
               <span className="text-xs text-slate-600">Middle Office</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={handleLogout}
-              title="Cerrar sesión"
-            >
-              <LogOut className="h-3.5 w-3.5 text-slate-400" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setChangePassOpen(true)}
+                title="Cambiar contraseña"
+              >
+                <KeyRound className="h-3.5 w-3.5 text-slate-400" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setRegenTOTPOpen(true)}
+                title="Regenerar Authenticator"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleLogout}
+                title="Cerrar sesión"
+              >
+                <LogOut className="h-3.5 w-3.5 text-slate-400" />
+              </Button>
+            </div>
           </div>
         </div>
       </aside>
 
       <ExcelUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
+      <ChangePasswordModal open={changePassOpen} onClose={() => setChangePassOpen(false)} />
+      <RegenerateTOTPModal open={regenTOTPOpen} onClose={() => setRegenTOTPOpen(false)} />
     </>
   )
 }
