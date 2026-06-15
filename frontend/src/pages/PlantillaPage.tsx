@@ -1,18 +1,47 @@
 // frontend/src/pages/PlantillaPage.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
 import { usePlantilla, useGuardarPlantilla } from '../hooks/useSession'
+
+const VARIABLES: { label: string; token: string }[] = [
+  { label: 'Nombre cliente',    token: '{cliente_nombre}' },
+  { label: 'Cta. comitente',    token: '{cuenta_comitente}' },
+  { label: 'Cta. cotapartista', token: '{cuenta_cotapartista}' },
+  { label: 'Instrumento',       token: '{instrumento}' },
+  { label: 'Tipo',              token: '{tipo}' },
+  { label: 'Cantidad',          token: '{cantidad}' },
+  { label: 'Precio',            token: '{precio}' },
+  { label: 'Moneda',            token: '{moneda}' },
+  { label: 'Liquidación',       token: '{liquidacion}' },
+  { label: 'Fecha operación',   token: '{fecha_operacion}' },
+]
 
 export default function PlantillaPage() {
   const { data, isLoading } = usePlantilla()
   const guardar = useGuardarPlantilla()
   const [texto, setTexto] = useState('')
   const [saved, setSaved] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (data) setTexto(data.texto)
   }, [data])
+
+  function insertarVariable(token: string) {
+    const el = textareaRef.current
+    if (!el) return
+    const start = el.selectionStart ?? texto.length
+    const end = el.selectionEnd ?? texto.length
+    const next = texto.slice(0, start) + token + texto.slice(end)
+    setTexto(next)
+    setSaved(false)
+    requestAnimationFrame(() => {
+      el.focus()
+      const pos = start + token.length
+      el.setSelectionRange(pos, pos)
+    })
+  }
 
   async function handleGuardar() {
     try {
@@ -31,14 +60,31 @@ export default function PlantillaPage() {
       <div>
         <h2 className="text-xl font-semibold text-slate-900">Plantilla Estándar</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Texto base para las minutas de esta sesión. Los cambios se pierden al cerrar sesión.
+          Texto del mail. Usá los botones para insertar variables que se reemplazan
+          con los datos de cada operación al generar las minutas.
+          La configuración se guarda en la base de datos.
         </p>
+      </div>
+
+      {/* Botones de variables */}
+      <div className="flex flex-wrap gap-1.5">
+        {VARIABLES.map(({ label, token }) => (
+          <button
+            key={token}
+            type="button"
+            onClick={() => insertarVariable(token)}
+            className="px-2 py-1 text-xs font-mono bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200 transition-colors"
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
         <div className="h-64 bg-slate-100 rounded animate-pulse" />
       ) : (
         <Textarea
+          ref={textareaRef}
           value={texto}
           onChange={(e) => { setTexto(e.target.value); setSaved(false) }}
           rows={18}
@@ -48,15 +94,10 @@ export default function PlantillaPage() {
       )}
 
       <div className="flex items-center gap-3">
-        <Button
-          onClick={handleGuardar}
-          disabled={guardar.isPending || !modificado}
-        >
+        <Button onClick={handleGuardar} disabled={guardar.isPending || !modificado}>
           {guardar.isPending ? 'Guardando...' : 'Guardar plantilla'}
         </Button>
-        {saved && (
-          <span className="text-sm text-green-600">Guardado</span>
-        )}
+        {saved && <span className="text-sm text-green-600">Guardado</span>}
       </div>
     </div>
   )
