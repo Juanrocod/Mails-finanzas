@@ -13,8 +13,8 @@ from app.core.database import Base
 
 # Import all models so they register with Base.metadata
 from app.models.user import User
-from app.models.order import Orden, ExcelUpload
-from app.models.audit import AuditEvent, DJTemplate
+from app.models.plantilla import Plantilla
+from app.models.config_dj import ConfigDJ
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
