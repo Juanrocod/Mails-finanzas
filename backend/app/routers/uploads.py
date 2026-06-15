@@ -57,7 +57,9 @@ def upload_excel(
         }
         dj_aplica = evaluar_reglas(config, datos_orden)
         dj_texto = resolver_dj_texto(config, datos_orden) if dj_aplica else None
+        plantilla = session_store.get_plantilla(user_id)
         texto = generate_minuta_text(
+            plantilla=plantilla,
             cliente_nombre=parsed.cliente_nombre,
             cuenta_comitente=parsed.cuenta_comitente,
             cuenta_cotapartista=parsed.cuenta_cotapartista,

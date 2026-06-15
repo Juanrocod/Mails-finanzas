@@ -1,76 +1,66 @@
 from datetime import datetime
-from app.services.minuta_generator import generate_minuta_text
+from app.services.minuta_generator import generate_minuta_text, DEFAULT_PLANTILLA
 
-BASE = dict(
-    cliente_nombre="Juan Pérez",
+FECHA = datetime(2026, 6, 15, 14, 30)
+KWARGS = dict(
+    plantilla=DEFAULT_PLANTILLA,
+    cliente_nombre="Ana García",
     cuenta_comitente="12345",
     cuenta_cotapartista="67890",
-    instrumento="AL30",
-    tipo="COMPRA",
-    cantidad=1000.0,
-    precio=70.50,
-    moneda="USD",
+    instrumento="GD30",
+    tipo="VENTA",
+    cantidad=500000.0,
+    precio=1250.75,
+    moneda="ARS",
     liquidacion="24HS",
-    fecha_operacion=datetime(2026, 6, 13, 10, 30),
+    fecha_operacion=FECHA,
 )
 
 
-def test_contains_instrument():
-    assert "AL30" in generate_minuta_text(**BASE)
+def test_genera_texto_con_nombre_cliente():
+    texto = generate_minuta_text(**KWARGS)
+    assert "Ana García" in texto
 
 
-def test_contains_tipo():
-    assert "COMPRA" in generate_minuta_text(**BASE)
+def test_genera_texto_con_instrumento():
+    texto = generate_minuta_text(**KWARGS)
+    assert "GD30" in texto
 
 
-def test_contains_cantidad():
-    text = generate_minuta_text(**BASE)
-    # 1000.0 formatted with thousands separator
-    assert "1.000" in text or "1,000" in text or "1000" in text
+def test_formato_cantidad_punto_miles():
+    texto = generate_minuta_text(**KWARGS)
+    assert "500.000" in texto
 
 
-def test_contains_precio():
-    text = generate_minuta_text(**BASE)
-    assert "70,50" in text or "70.50" in text or "70,5" in text
+def test_formato_precio_coma_decimal():
+    texto = generate_minuta_text(**KWARGS)
+    assert "1.250,75" in texto
 
 
-def test_contains_moneda():
-    assert "USD" in generate_minuta_text(**BASE)
+def test_fecha_formateada():
+    texto = generate_minuta_text(**KWARGS)
+    assert "15/06/2026 14:30" in texto
 
 
-def test_contains_liquidacion():
-    assert "24HS" in generate_minuta_text(**BASE)
+def test_sin_dj_no_incluye_seccion_dj():
+    texto = generate_minuta_text(**KWARGS)
+    assert "DECLARACIÓN JURADA" not in texto
 
 
-def test_contains_cliente_nombre():
-    assert "Juan Pérez" in generate_minuta_text(**BASE)
+def test_con_dj_incluye_texto():
+    texto = generate_minuta_text(**KWARGS, dj_texto="Declara no estar inhabilitado.")
+    assert "DECLARACIÓN JURADA" in texto
+    assert "Declara no estar inhabilitado." in texto
 
 
-def test_contains_cuenta_comitente():
-    assert "12345" in generate_minuta_text(**BASE)
+def test_plantilla_custom_usa_variables():
+    plantilla = "Para: {cliente_nombre} | Instrumento: {instrumento}"
+    texto = generate_minuta_text(**{**KWARGS, "plantilla": plantilla})
+    assert texto == "Para: Ana García | Instrumento: GD30"
 
 
-def test_contains_fecha():
-    text = generate_minuta_text(**BASE)
-    # Date 2026-06-13 should appear in some format
-    assert "2026" in text and "13" in text
-
-
-def test_no_dj_section_without_dj():
-    text = generate_minuta_text(**BASE)
-    assert "DECLARACIÓN JURADA" not in text
-
-
-def test_dj_section_with_dj_texto():
-    text = generate_minuta_text(**BASE, dj_texto="Por la presente declaro...")
-    assert "DECLARACIÓN JURADA" in text
-    assert "Por la presente declaro..." in text
-
-
-def test_returns_string():
-    assert isinstance(generate_minuta_text(**BASE), str)
-
-
-def test_dj_texto_none_means_no_dj():
-    text = generate_minuta_text(**BASE, dj_texto=None)
-    assert "DECLARACIÓN JURADA" not in text
+def test_variable_desconocida_queda_sin_reemplazar():
+    plantilla = "Hola {cliente_nombre} {variable_rara}"
+    texto = generate_minuta_text(**{**KWARGS, "plantilla": plantilla})
+    assert "{variable_rara}" in texto
+    assert "Ana García" in texto
