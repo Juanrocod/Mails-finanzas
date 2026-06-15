@@ -67,6 +67,21 @@ def get_totp_provisioning_uri(secret: str, username: str, issuer: str) -> str:
     return pyotp.TOTP(secret).provisioning_uri(name=username, issuer_name=issuer)
 
 
+def create_totp_setup_token(user_id: str, invite_token_id: str) -> str:
+    from app.core.config import settings
+    expire = datetime.now(UTC) + timedelta(minutes=10)
+    return jwt.encode(
+        {
+            "sub": user_id,
+            "invite_token_id": invite_token_id,
+            "type": "totp_setup",
+            "exp": expire,
+        },
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+
 class EncryptedString(TypeDecorator):
     """Fernet symmetric encryption for sensitive DB columns (email, account numbers)."""
     impl = String
