@@ -10,7 +10,7 @@ import {
 import { Button } from '../ui/button'
 import { cn } from '../../lib/utils'
 import { uploadExcel } from '../../services/upload'
-import type { UploadResponse, EstadoMinuta, SessionMinutasResponse } from '../../types/domain'
+import type { UploadMVPResponse, EstadoMinuta, SessionMinutasResponse } from '../../types/domain'
 
 type Step = 'select' | 'warning' | 'preview' | 'uploading' | 'done'
 
@@ -24,7 +24,7 @@ export default function ExcelUploadModal({ open, onClose }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<Step>('select')
   const [file, setFile] = useState<File | null>(null)
-  const [result, setResult] = useState<UploadResponse | null>(null)
+  const [result, setResult] = useState<UploadMVPResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [pendingBorradores, setPendingBorradores] = useState(0)
@@ -181,8 +181,13 @@ export default function ExcelUploadModal({ open, onClose }: Props) {
                 Borradores
               </p>
               <p className="text-xs text-green-700 mt-0.5">
-                Total procesadas: {result.total_ordenes} · Con errores:{' '}
-                {result.ordenes_con_error}
+                ✅ Órdenes válidas: {result.ordenes_validas}
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                🚫 Órdenes filtradas: {result.ordenes_filtradas}
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                ❌ Órdenes con error: {result.ordenes_con_error}
               </p>
             </div>
 
