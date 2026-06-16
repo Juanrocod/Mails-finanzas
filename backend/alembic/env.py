@@ -15,6 +15,7 @@ from app.core.database import Base
 from app.models.user import User
 from app.models.plantilla import Plantilla
 from app.models.config_dj import ConfigDJ
+from app.models.config_filtros import ConfigFiltros
 from app.models.invite_token import InviteToken
 
 config = context.config
