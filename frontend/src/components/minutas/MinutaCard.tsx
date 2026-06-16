@@ -10,19 +10,14 @@ import type { Minuta } from '../../types/domain'
 
 const ESTADO_BADGE: Record<string, string> = {
   BORRADOR: 'bg-slate-100 text-slate-700 hover:bg-slate-100',
-  ENVIADO: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+  ENVIADO: 'bg-green-100 text-green-800 hover:bg-green-100',
+  FILTRADA: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
 }
 
-function formatPrecio(precio: number, moneda: string): string {
-  try {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: moneda,
-      minimumFractionDigits: 2,
-    }).format(precio)
-  } catch {
-    return `${moneda} ${precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
-  }
+function fmtNum(val: number): string {
+  if (val === -1) return 'N/A'
+  if (Number.isInteger(val)) return val.toLocaleString('es-AR')
+  return val.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 interface Props {
@@ -31,6 +26,14 @@ interface Props {
 }
 
 export default function MinutaCard({ minuta, onClick }: Props) {
+  const fechaFormateada = (() => {
+    try {
+      return format(new Date(minuta.fecha_operacion), 'dd/MM/yyyy HH:mm', { locale: es })
+    } catch {
+      return minuta.fecha_operacion
+    }
+  })()
+
   return (
     <Card
       role="button"
@@ -54,12 +57,12 @@ export default function MinutaCard({ minuta, onClick }: Props) {
               variant="secondary"
               className={cn(
                 'text-xs font-semibold shrink-0',
-                minuta.tipo === 'COMPRA'
+                minuta.operacion === 'COMPRA'
                   ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100'
                   : 'bg-red-100 text-red-700 hover:bg-red-100'
               )}
             >
-              {minuta.tipo}
+              {minuta.operacion}
             </Badge>
             {minuta.dj_aplicada && (
               <AlertTriangle
@@ -76,22 +79,22 @@ export default function MinutaCard({ minuta, onClick }: Props) {
           </div>
 
           <p className="text-sm text-slate-700">
-            {minuta.instrumento} — {minuta.cantidad.toLocaleString('es-AR')} ×{' '}
-            {formatPrecio(minuta.precio, minuta.moneda)} {minuta.moneda}
+            {minuta.instrumento || '—'} — {minuta.moneda} {fmtNum(minuta.monto)}
           </p>
 
           <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
-            <span>Liq. {minuta.liquidacion}</span>
+            <span>Comitente: {minuta.cuenta_comitente}</span>
             <span>·</span>
-            <span>
-              {format(new Date(minuta.fecha_operacion), 'dd/MM/yyyy HH:mm', { locale: es })}
-            </span>
+            <span>{fechaFormateada}</span>
           </div>
         </div>
 
         <Badge
           variant="secondary"
-          className={cn('text-xs shrink-0 self-start mt-0.5', ESTADO_BADGE[minuta.estado])}
+          className={cn(
+            'text-xs shrink-0 self-start mt-0.5',
+            ESTADO_BADGE[minuta.estado] ?? 'bg-slate-100 text-slate-700'
+          )}
         >
           {minuta.estado}
         </Badge>

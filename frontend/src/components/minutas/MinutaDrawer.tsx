@@ -1,5 +1,8 @@
 // frontend/src/components/minutas/MinutaDrawer.tsx
+import type React from 'react'
 import { useEffect, useState } from 'react'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { Copy, PenLine, ChevronDown, AlertTriangle } from 'lucide-react'
 import {
   Sheet,
@@ -22,7 +25,44 @@ import type { Minuta } from '../../types/domain'
 
 const ESTADO_BADGE: Record<string, string> = {
   BORRADOR: 'bg-slate-100 text-slate-700',
-  ENVIADO: 'bg-yellow-100 text-yellow-800',
+  ENVIADO: 'bg-green-100 text-green-800',
+  FILTRADA: 'bg-yellow-100 text-yellow-800',
+}
+
+function fmtNum(val: number): string {
+  if (val === -1) return 'N/A'
+  if (Number.isInteger(val)) return val.toLocaleString('es-AR')
+  return val.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function fmtFecha(iso: string): string {
+  try {
+    return format(new Date(iso), 'dd/MM/yyyy HH:mm', { locale: es })
+  } catch {
+    return iso
+  }
+}
+
+function fmtFechaCorta(iso: string): string {
+  try {
+    return format(new Date(iso), 'dd/MM/yyyy', { locale: es })
+  } catch {
+    return iso
+  }
+}
+
+interface DetalleRowProps {
+  label: string
+  value: React.ReactNode
+}
+
+function DetalleRow({ label, value }: DetalleRowProps) {
+  return (
+    <div className="flex justify-between gap-4 py-1 text-sm">
+      <span className="text-slate-500 shrink-0">{label}</span>
+      <span className="text-slate-900 text-right">{value}</span>
+    </div>
+  )
 }
 
 interface Props {
@@ -96,13 +136,18 @@ export default function MinutaDrawer({ minuta, onClose }: Props) {
                     {minuta.cliente_nombre}
                   </SheetTitle>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Comitente: {minuta.cuenta_comitente} · Cotapartista:{' '}
-                    {minuta.cuenta_cotapartista}
+                    Comitente: {minuta.cuenta_comitente}
+                    {minuta.cuenta_cotapartista && (
+                      <> · Cotapartista: {minuta.cuenta_cotapartista}</>
+                    )}
                   </p>
                 </div>
                 <Badge
                   variant="secondary"
-                  className={cn('shrink-0 text-xs', ESTADO_BADGE[minuta.estado])}
+                  className={cn(
+                    'shrink-0 text-xs',
+                    ESTADO_BADGE[minuta.estado] ?? 'bg-slate-100 text-slate-700'
+                  )}
                 >
                   {minuta.estado}
                 </Badge>
@@ -167,6 +212,38 @@ export default function MinutaDrawer({ minuta, onClose }: Props) {
                 </>
               )}
 
+              {/* Detalle de la orden */}
+              <Separator />
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-slate-700 hover:text-slate-900 py-1 group">
+                  <span>Detalle de la orden</span>
+                  <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-1">
+                  <div className="divide-y divide-slate-100">
+                    <DetalleRow label="ID Orden" value={minuta.id_orden} />
+                    <DetalleRow label="Operación" value={minuta.operacion} />
+                    <DetalleRow label="Instrumento" value={minuta.instrumento || '—'} />
+                    <DetalleRow label="Moneda" value={minuta.moneda} />
+                    <DetalleRow label="Fecha operación" value={fmtFecha(minuta.fecha_operacion)} />
+                    <DetalleRow label="Fecha liquidación" value={fmtFechaCorta(minuta.fecha_liquidacion)} />
+                    <DetalleRow label="Cantidad" value={fmtNum(minuta.cantidad)} />
+                    <DetalleRow label="Precio" value={fmtNum(minuta.precio)} />
+                    <DetalleRow label="Monto" value={fmtNum(minuta.monto)} />
+                    <DetalleRow label="Cantidad operada" value={fmtNum(minuta.cantidad_operada)} />
+                    <DetalleRow label="Precio operado" value={fmtNum(minuta.precio_operado)} />
+                    <DetalleRow label="Estado orden" value={minuta.estado_orden} />
+                    <DetalleRow label="Operador" value={minuta.operador || '—'} />
+                    <DetalleRow label="Origen" value={minuta.origen || '—'} />
+                    <DetalleRow label="Asesor" value={minuta.asesor || '—'} />
+                    <DetalleRow
+                      label="Requiere conformidad"
+                      value={minuta.requiere_conformidad === 1 ? 'Sí' : 'No'}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
               {/* Acciones */}
               <Separator />
               <section className="space-y-3">
@@ -199,6 +276,11 @@ export default function MinutaDrawer({ minuta, onClose }: Props) {
                   {minuta.estado === 'ENVIADO' && (
                     <p className="text-xs text-slate-500 py-1">
                       Minuta enviada. Podés copiar el contenido si necesitás reenviar.
+                    </p>
+                  )}
+                  {minuta.estado === 'FILTRADA' && (
+                    <p className="text-xs text-slate-500 py-1">
+                      Minuta filtrada por reglas de configuración.
                     </p>
                   )}
                 </div>
