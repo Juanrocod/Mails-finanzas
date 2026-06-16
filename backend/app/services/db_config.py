@@ -4,19 +4,24 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.plantilla import Plantilla
 from app.models.config_dj import ConfigDJ
+from app.models.config_filtros import ConfigFiltros
 
 DEFAULT_PLANTILLA = (
     "MINUTA DE OPERACIÓN\n"
-    "Fecha y hora: {fecha_operacion}\n\n"
+    "Fecha y hora: {fecha_operacion}\n"
+    "Fecha liquidación: {fecha_liquidacion}\n\n"
     "Cliente: {cliente_nombre}\n"
     "Cuenta Comitente: {cuenta_comitente}\n"
     "Cuenta Cotapartista: {cuenta_cotapartista}\n\n"
     "DETALLE DE LA OPERACIÓN\n"
+    "Operación: {operacion}\n"
     "Instrumento: {instrumento}\n"
-    "Tipo: {tipo}\n"
+    "Moneda: {moneda}\n"
     "Cantidad: {cantidad}\n"
-    "Precio: {precio} {moneda}\n"
-    "Condición de Liquidación: {liquidacion}\n\n"
+    "Precio: {precio}\n"
+    "Monto: {monto}\n"
+    "Estado: {estado}\n\n"
+    "Asesor: {asesor}\n\n"
     "Quedo a su disposición ante cualquier consulta.\n"
     "Saludos cordiales."
 )
@@ -64,6 +69,7 @@ def load_config_dj(db: Session) -> ConfigDJData:
         texto_alerta=row.texto_alerta,
         reglas=json.loads(row.reglas),
         logica=row.logica,
+        activar_si_requiere_conformidad=row.activar_si_requiere_conformidad,
     )
 
 
@@ -76,6 +82,7 @@ def save_config_dj(db: Session, data: ConfigDJData) -> None:
         row.texto_alerta = data.texto_alerta
         row.reglas = json.dumps(data.reglas)
         row.logica = data.logica
+        row.activar_si_requiere_conformidad = data.activar_si_requiere_conformidad
         row.actualizado_en = now
     else:
         db.add(ConfigDJ(
@@ -83,6 +90,34 @@ def save_config_dj(db: Session, data: ConfigDJData) -> None:
             activa=data.activa,
             incluir_texto_en_minuta=data.incluir_texto_en_minuta,
             texto_alerta=data.texto_alerta,
+            reglas=json.dumps(data.reglas),
+            logica=data.logica,
+            activar_si_requiere_conformidad=data.activar_si_requiere_conformidad,
+            actualizado_en=now,
+        ))
+    db.commit()
+
+
+def load_config_filtros(db: Session) -> ConfigFiltrosData:
+    row = db.get(ConfigFiltros, 1)
+    if not row:
+        return ConfigFiltrosData()
+    return ConfigFiltrosData(
+        reglas=json.loads(row.reglas),
+        logica=row.logica,
+    )
+
+
+def save_config_filtros(db: Session, data: ConfigFiltrosData) -> None:
+    now = datetime.now(timezone.utc)
+    row = db.get(ConfigFiltros, 1)
+    if row:
+        row.reglas = json.dumps(data.reglas)
+        row.logica = data.logica
+        row.actualizado_en = now
+    else:
+        db.add(ConfigFiltros(
+            id=1,
             reglas=json.dumps(data.reglas),
             logica=data.logica,
             actualizado_en=now,
