@@ -192,23 +192,13 @@ export default function MinutaDrawer({ minuta, onClose }: Props) {
               </section>
 
               {/* DJ section */}
-              {minuta.dj_aplicada && minuta.dj_texto && (
+              {minuta.dj_aplicada && (
                 <>
                   <Separator />
-                  <Collapsible>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-slate-700 hover:text-slate-900 py-1 group">
-                      <span className="flex items-center gap-1.5">
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        Declaración Jurada incluida
-                      </span>
-                      <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-data-[state=open]:rotate-180" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-2">
-                      <pre className="text-xs text-slate-600 bg-amber-50 border border-amber-100 rounded p-2 whitespace-pre-wrap">
-                        {minuta.dj_texto}
-                      </pre>
-                    </CollapsibleContent>
-                  </Collapsible>
+                  <div className="flex items-center gap-2 py-1">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span className="text-sm font-medium text-amber-700">Requiere Declaración Jurada</span>
+                  </div>
                 </>
               )}
 
