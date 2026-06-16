@@ -6,15 +6,19 @@ import { usePlantilla, useGuardarPlantilla } from '../hooks/useSession'
 
 const VARIABLES: { label: string; token: string }[] = [
   { label: 'Nombre cliente',    token: '{cliente_nombre}' },
-  { label: 'Cta. comitente',    token: '{cuenta_comitente}' },
-  { label: 'Cta. cotapartista', token: '{cuenta_cotapartista}' },
-  { label: 'Instrumento',       token: '{instrumento}' },
-  { label: 'Tipo',              token: '{tipo}' },
-  { label: 'Cantidad',          token: '{cantidad}' },
-  { label: 'Precio',            token: '{precio}' },
-  { label: 'Moneda',            token: '{moneda}' },
-  { label: 'Liquidación',       token: '{liquidacion}' },
-  { label: 'Fecha operación',   token: '{fecha_operacion}' },
+  { label: 'Cta. comitente',   token: '{cuenta_comitente}' },
+  { label: 'Cta. cotapartista',token: '{cuenta_cotapartista}' },
+  { label: 'Nº orden',         token: '{id_orden}' },
+  { label: 'Fecha operación',  token: '{fecha_operacion}' },
+  { label: 'Fecha liquidación',token: '{fecha_liquidacion}' },
+  { label: 'Operación',        token: '{operacion}' },
+  { label: 'Instrumento',      token: '{instrumento}' },
+  { label: 'Moneda',           token: '{moneda}' },
+  { label: 'Cantidad',         token: '{cantidad}' },
+  { label: 'Precio',           token: '{precio}' },
+  { label: 'Monto',            token: '{monto}' },
+  { label: 'Estado',           token: '{estado}' },
+  { label: 'Asesor',           token: '{asesor}' },
 ]
 
 export default function PlantillaPage() {
