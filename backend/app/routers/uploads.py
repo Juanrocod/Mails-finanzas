@@ -44,47 +44,54 @@ def upload_excel(
     config = db_config.load_config_dj(db)
     now = datetime.now(timezone.utc)
 
+    plantilla = db_config.load_plantilla(db)
     minutas: list[MinutaSession] = []
     for parsed in parse_result.ordenes:
-        datos_orden = {
+        datos = {
             "cliente_nombre": parsed.cliente_nombre,
+            "cuenta_comitente": parsed.cuenta_comitente,
+            "cuenta_cotapartista": parsed.cuenta_cotapartista,
+            "id_orden": parsed.id_orden,
+            "fecha_operacion": parsed.fecha_operacion,
+            "fecha_liquidacion": parsed.fecha_liquidacion,
+            "operacion": parsed.operacion,
             "instrumento": parsed.instrumento,
-            "tipo": parsed.tipo,
+            "moneda": parsed.moneda,
             "cantidad": parsed.cantidad,
             "precio": parsed.precio,
-            "moneda": parsed.moneda,
-            "liquidacion": parsed.liquidacion,
+            "monto": parsed.monto,
+            "estado": parsed.estado,
+            "cantidad_operada": parsed.cantidad_operada,
+            "precio_operado": parsed.precio_operado,
+            "operador": parsed.operador,
+            "origen": parsed.origen,
+            "asesor": parsed.asesor,
+            "requiere_conformidad": parsed.requiere_conformidad,
         }
-        dj_aplica = evaluar_reglas(config, datos_orden)
-        dj_texto = resolver_dj_texto(config, datos_orden) if dj_aplica else None
-        plantilla = db_config.load_plantilla(db)
-        texto = generate_minuta_text(
-            plantilla=plantilla,
-            cliente_nombre=parsed.cliente_nombre,
-            cuenta_comitente=parsed.cuenta_comitente,
-            cuenta_cotapartista=parsed.cuenta_cotapartista,
-            instrumento=parsed.instrumento,
-            tipo=parsed.tipo,
-            cantidad=parsed.cantidad,
-            precio=parsed.precio,
-            moneda=parsed.moneda,
-            liquidacion=parsed.liquidacion,
-            fecha_operacion=parsed.fecha_operacion,
-            dj_texto=dj_texto,
-        )
+        dj_aplica = evaluar_reglas(config, datos)
+        dj_texto = resolver_dj_texto(config, datos) if dj_aplica else None
+        texto = generate_minuta_text(plantilla, datos, dj_texto=dj_texto)
         minutas.append(MinutaSession(
             id=str(uuid.uuid4()),
             cliente_nombre=parsed.cliente_nombre,
-            cliente_email=parsed.cliente_email,
             cuenta_comitente=parsed.cuenta_comitente,
             cuenta_cotapartista=parsed.cuenta_cotapartista,
+            id_orden=parsed.id_orden,
+            fecha_operacion=parsed.fecha_operacion,
+            fecha_liquidacion=parsed.fecha_liquidacion,
+            operacion=parsed.operacion,
             instrumento=parsed.instrumento,
-            tipo=parsed.tipo,
+            moneda=parsed.moneda,
             cantidad=parsed.cantidad,
             precio=parsed.precio,
-            moneda=parsed.moneda,
-            liquidacion=parsed.liquidacion,
-            fecha_operacion=parsed.fecha_operacion,
+            monto=parsed.monto,
+            estado_orden=parsed.estado,
+            cantidad_operada=parsed.cantidad_operada,
+            precio_operado=parsed.precio_operado,
+            operador=parsed.operador,
+            origen=parsed.origen,
+            asesor=parsed.asesor,
+            requiere_conformidad=parsed.requiere_conformidad,
             dj_aplicada=dj_aplica,
             dj_texto=dj_texto,
             estado="BORRADOR",
@@ -93,7 +100,7 @@ def upload_excel(
             creado_en=now,
         ))
 
-    session_store.clear_borradores(user_id)
+    session_store.clear_borradores_y_filtradas(user_id)
     session_store.add_minutas(user_id, minutas)
 
     return UploadMVPResponse(

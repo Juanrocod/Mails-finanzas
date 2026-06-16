@@ -1,66 +1,65 @@
+from app.services.minuta_generator import generate_minuta_text, _fmt_num
 from datetime import datetime
-from app.services.minuta_generator import generate_minuta_text, DEFAULT_PLANTILLA
-
-FECHA = datetime(2026, 6, 15, 14, 30)
-KWARGS = dict(
-    plantilla=DEFAULT_PLANTILLA,
-    cliente_nombre="Ana García",
-    cuenta_comitente="12345",
-    cuenta_cotapartista="67890",
-    instrumento="GD30",
-    tipo="VENTA",
-    cantidad=500000.0,
-    precio=1250.75,
-    moneda="ARS",
-    liquidacion="24HS",
-    fecha_operacion=FECHA,
-)
 
 
-def test_genera_texto_con_nombre_cliente():
-    texto = generate_minuta_text(**KWARGS)
-    assert "Ana García" in texto
+DATOS_BASE = {
+    "cliente_nombre": "KIRIADRE OMAR",
+    "cuenta_comitente": "70164",
+    "cuenta_cotapartista": "177",
+    "id_orden": 100453202,
+    "fecha_operacion": datetime(2026, 6, 16, 11, 12, 18),
+    "fecha_liquidacion": "16/06/2026",
+    "operacion": "Compra CI",
+    "instrumento": "AL30",
+    "moneda": "Pesos",
+    "cantidad": 350.0,
+    "precio": 936.6,
+    "monto": 327810.0,
+    "estado": "Ejecutada",
+    "cantidad_operada": 350.0,
+    "precio_operado": 936.6,
+    "operador": "kobruna425582",
+    "origen": "Cliente",
+    "asesor": "Wenceslao Jakob",
+    "requiere_conformidad": 0,
+}
 
 
-def test_genera_texto_con_instrumento():
-    texto = generate_minuta_text(**KWARGS)
-    assert "GD30" in texto
+def test_generate_basic_minuta():
+    plantilla = "Cliente: {cliente_nombre}\nOperación: {operacion}\nMonto: {monto}"
+    texto = generate_minuta_text(plantilla, DATOS_BASE)
+    assert "KIRIADRE OMAR" in texto
+    assert "Compra CI" in texto
+    assert "327.810" in texto  # formato es-AR
 
 
-def test_formato_cantidad_punto_miles():
-    texto = generate_minuta_text(**KWARGS)
-    assert "500.000" in texto
+def test_negative_one_renders_na():
+    plantilla = "Cantidad: {cantidad}\nPrecio: {precio}"
+    datos = {**DATOS_BASE, "cantidad": -1.0, "precio": -1.0}
+    texto = generate_minuta_text(plantilla, datos)
+    assert texto == "Cantidad: N/A\nPrecio: N/A"
 
 
-def test_formato_precio_coma_decimal():
-    texto = generate_minuta_text(**KWARGS)
-    assert "1.250,75" in texto
+def test_unknown_variable_left_as_literal():
+    plantilla = "Hola {variable_inexistente}"
+    texto = generate_minuta_text(plantilla, DATOS_BASE)
+    assert "{variable_inexistente}" in texto
 
 
-def test_fecha_formateada():
-    texto = generate_minuta_text(**KWARGS)
-    assert "15/06/2026 14:30" in texto
-
-
-def test_sin_dj_no_incluye_seccion_dj():
-    texto = generate_minuta_text(**KWARGS)
-    assert "DECLARACIÓN JURADA" not in texto
-
-
-def test_con_dj_incluye_texto():
-    texto = generate_minuta_text(**KWARGS, dj_texto="Declara no estar inhabilitado.")
+def test_dj_texto_appended():
+    plantilla = "Cliente: {cliente_nombre}"
+    texto = generate_minuta_text(plantilla, DATOS_BASE, dj_texto="Texto DJ aquí")
     assert "DECLARACIÓN JURADA" in texto
-    assert "Declara no estar inhabilitado." in texto
+    assert "Texto DJ aquí" in texto
 
 
-def test_plantilla_custom_usa_variables():
-    plantilla = "Para: {cliente_nombre} | Instrumento: {instrumento}"
-    texto = generate_minuta_text(**{**KWARGS, "plantilla": plantilla})
-    assert texto == "Para: Ana García | Instrumento: GD30"
+def test_fmt_num_negative_one():
+    assert _fmt_num(-1.0) == "N/A"
 
 
-def test_variable_desconocida_queda_sin_reemplazar():
-    plantilla = "Hola {cliente_nombre} {variable_rara}"
-    texto = generate_minuta_text(**{**KWARGS, "plantilla": plantilla})
-    assert "{variable_rara}" in texto
-    assert "Ana García" in texto
+def test_fmt_num_integer():
+    assert _fmt_num(1000.0) == "1.000"
+
+
+def test_fmt_num_decimal():
+    assert _fmt_num(936.6) == "936,60"
