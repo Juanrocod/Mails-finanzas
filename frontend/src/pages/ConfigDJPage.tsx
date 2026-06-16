@@ -294,17 +294,17 @@ export default function ConfigDJPage() {
             </div>
           </div>
 
-          {/* ── Sección 4: Texto de alerta ── */}
+          {/* ── Sección 4: Texto de DJ en el mail ── */}
           <div className={`border border-slate-200 rounded-lg overflow-hidden transition-opacity ${disabled ? 'opacity-40 pointer-events-none' : ''}`}>
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-700">Texto de alerta DJ</p>
+                <p className="text-sm font-semibold text-slate-700">Texto de Declaración Jurada en el mail</p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Texto que se muestra cuando una operación requiere DJ. Podés usar variables.
+                  Cuando está activo, este texto se agrega automáticamente al cuerpo de la minuta.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Incluir en la minuta</span>
+                <span className="text-xs text-slate-500">Incluir en el mail</span>
                 <Toggle
                   checked={incluirTexto}
                   onChange={() => { setIncluirTexto(!incluirTexto); setSaved(false) }}
@@ -312,38 +312,30 @@ export default function ConfigDJPage() {
               </div>
             </div>
 
-            <div className="p-4 space-y-3">
-              {!incluirTexto && (
-                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                  <p className="text-xs text-amber-700">
-                    El texto no se agrega a la minuta — Middle Office verá el ícono ⚠ y deberá adjuntar el documento DJ manualmente.
-                  </p>
+            {incluirTexto && (
+              <div className="p-4 space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {DJ_VARIABLES.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => insertarVariable(v)}
+                      className="px-2 py-0.5 text-xs font-mono bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200 transition-colors"
+                    >
+                      {v}
+                    </button>
+                  ))}
                 </div>
-              )}
-
-              <div className="flex flex-wrap gap-1.5">
-                {DJ_VARIABLES.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => insertarVariable(v)}
-                    className="px-2 py-0.5 text-xs font-mono bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200 transition-colors"
-                  >
-                    {v}
-                  </button>
-                ))}
+                <Textarea
+                  ref={textareaRef}
+                  value={textoAlerta}
+                  onChange={(e) => { setTextoAlerta(e.target.value); setSaved(false) }}
+                  rows={6}
+                  className="font-mono text-sm resize-none"
+                  placeholder="Ej: El cliente {cliente_nombre} debe presentar Declaración Jurada por operación de {cantidad} títulos de {instrumento}..."
+                />
               </div>
-
-              <Textarea
-                ref={textareaRef}
-                value={textoAlerta}
-                onChange={(e) => { setTextoAlerta(e.target.value); setSaved(false) }}
-                rows={6}
-                className="font-mono text-sm resize-none"
-                placeholder="Ej: El cliente {cliente_nombre} debe presentar Declaración Jurada por operación de {cantidad} títulos de {instrumento}..."
-              />
-            </div>
+            )}
           </div>
 
         </div>
