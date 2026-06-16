@@ -12,10 +12,10 @@ class InviteToken(Base):
     token = Column(String(64), unique=True, nullable=False, index=True)
     tipo = Column(String(10), nullable=False)  # 'invite' | 'reset'
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    expira_en = Column(DateTime, nullable=False)
-    usado_en = Column(DateTime, nullable=True)
+    expira_en = Column(DateTime(timezone=True), nullable=False)
+    usado_en = Column(DateTime(timezone=True), nullable=True)
     creado_en = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
