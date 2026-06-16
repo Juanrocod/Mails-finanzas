@@ -127,7 +127,7 @@ def register(request: Request, body: RegisterRequest, db: Session = Depends(get_
     ).first()
     if not invite:
         raise HTTPException(status_code=400, detail="Link de registro inválido o expirado")
-    if invite.expira_en < datetime.now(timezone.utc):
+    if invite.expira_en.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Link de registro inválido o expirado")
 
     if db.query(User).filter(User.username == body.username).first():
@@ -188,7 +188,7 @@ def reset_password(request: Request, body: ResetPasswordRequest, db: Session = D
     ).first()
     if not token_row:
         raise HTTPException(status_code=400, detail="Link de reset inválido o expirado")
-    if token_row.expira_en < datetime.now(timezone.utc):
+    if token_row.expira_en.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Link de reset inválido o expirado")
 
     user = db.query(User).filter(
