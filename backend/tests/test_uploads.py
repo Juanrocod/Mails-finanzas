@@ -1,7 +1,6 @@
 # backend/tests/test_uploads.py
 import io
 import openpyxl
-from datetime import datetime
 from app.services.excel_parser import EXPECTED_COLUMNS
 import app.services.session_store as store
 
@@ -22,16 +21,25 @@ def make_excel_bytes(rows: list[dict]) -> bytes:
 
 VALID_ROW = {
     "cliente_nombre": "Ana García",
-    "cliente_email": "ana@broker.com",
     "cuenta_comitente": "11111",
     "cuenta_cotapartista": "22222",
+    "id_orden": 999001,
+    "fecha": "14/06/2026",
+    "hora": "10:30:00",
+    "fecha_liquidacion": "16/06/2026",
+    "operacion": "Compra CI",
     "instrumento": "AL30",
-    "tipo": "COMPRA",
+    "moneda": "Pesos",
     "cantidad": 100.0,
     "precio": 70.5,
-    "moneda": "USD",
-    "liquidacion": "24HS",
-    "fecha_operacion": datetime(2026, 6, 14, 10, 30),
+    "monto": 7050.0,
+    "estado": "Ejecutada",
+    "cantidad_operada": 100.0,
+    "precio_operado": 70.5,
+    "operador": "testuser",
+    "origen": "Cliente",
+    "asesor": "Test Asesor",
+    "requiere_conformidad": 0,
 }
 
 
@@ -55,7 +63,7 @@ def test_upload_returns_201_and_minutas(client, auth_headers):
 
 
 def test_upload_two_rows_creates_two_minutas(client, auth_headers):
-    row2 = {**VALID_ROW, "cliente_nombre": "Pedro López", "cliente_email": "pedro@broker.com"}
+    row2 = {**VALID_ROW, "cliente_nombre": "Pedro López", "id_orden": 999002}
     excel = make_excel_bytes([VALID_ROW, row2])
     r = client.post(
         "/uploads/excel",
@@ -100,8 +108,22 @@ def test_upload_requires_auth(client):
     assert r.status_code == 403
 
 
+def test_upload_ordenes_filtradas_count(client, auth_headers):
+    """Filas que no coinciden con ningún filtro activo no se filtran (sin reglas configuradas)."""
+    excel = make_excel_bytes([VALID_ROW])
+    r = client.post(
+        "/uploads/excel",
+        files={"file": ("ops.xlsx", excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        headers=auth_headers,
+    )
+    assert r.status_code == 201
+    data = r.json()
+    assert "ordenes_filtradas" in data
+    assert data["ordenes_filtradas"] == 0
+
+
 def test_partial_errors_reported_without_blocking(client, auth_headers):
-    bad_row = {**VALID_ROW, "tipo": "INVALIDO"}
+    bad_row = {**VALID_ROW, "id_orden": "NO_ES_NUMERO", "cantidad": "NO_ES_NUMERO"}
     excel = make_excel_bytes([VALID_ROW, bad_row])
     r = client.post(
         "/uploads/excel",

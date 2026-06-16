@@ -22,6 +22,7 @@ from app.models.user import User
 from app.models.invite_token import InviteToken
 from app.models.plantilla import Plantilla
 from app.models.config_dj import ConfigDJ
+from app.models.config_filtros import ConfigFiltros
 
 _engine = create_engine(
     "sqlite:///:memory:",
@@ -114,16 +115,25 @@ def make_valid_excel():
 
     row = {
         "cliente_nombre": "Test Cliente",
-        "cliente_email": "cliente@test.com",
         "cuenta_comitente": "12345",
         "cuenta_cotapartista": "67890",
+        "id_orden": 999001,
+        "fecha": "16/06/2026",
+        "hora": "09:00:00",
+        "fecha_liquidacion": "16/06/2026",
+        "operacion": "Compra CI",
         "instrumento": "AL30",
-        "tipo": "COMPRA",
+        "moneda": "Pesos",
         "cantidad": 100.0,
         "precio": 70.50,
-        "moneda": "USD",
-        "liquidacion": "24HS",
-        "fecha_operacion": datetime(2026, 6, 14, 10, 30),
+        "monto": 7050.0,
+        "estado": "Ejecutada",
+        "cantidad_operada": 100.0,
+        "precio_operado": 70.50,
+        "operador": "testuser",
+        "origen": "Cliente",
+        "asesor": "Test Asesor",
+        "requiere_conformidad": 0,
     }
     for col_idx, key in enumerate(EXPECTED_COLUMNS.keys(), 1):
         ws.cell(row=2, column=col_idx, value=row[key])
