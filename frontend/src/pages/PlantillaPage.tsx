@@ -66,7 +66,6 @@ export default function PlantillaPage() {
         <p className="text-sm text-slate-500 mt-1">
           Texto del mail. Usá los botones para insertar variables que se reemplazan
           con los datos de cada operación al generar las minutas.
-          La configuración se guarda en la base de datos.
         </p>
       </div>
 
