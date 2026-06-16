@@ -1,71 +1,85 @@
-// frontend/src/types/domain.ts
-export type EstadoMinuta = 'BORRADOR' | 'ENVIADO'
-export type TipoOperacion = 'COMPRA' | 'VENTA'
-export type Liquidacion = 'CI' | '24HS' | '48HS'
-export type LogicaDJ = 'OR' | 'AND'
-export type OperadorDJ = '>' | '<' | '=' | '!=' | '>=' | '<='
-export type CampoDJ = 'cantidad' | 'precio' | 'moneda' | 'liquidacion' | 'tipo' | 'instrumento'
-
-export interface ReglaDJ {
-  campo: CampoDJ
-  operador: OperadorDJ
-  valor: string
-}
+export type EstadoMinuta = "BORRADOR" | "ENVIADO" | "FILTRADA";
 
 export interface Minuta {
-  id: string
-  cliente_nombre: string
-  cliente_email: string
-  cuenta_comitente: string
-  cuenta_cotapartista: string
-  instrumento: string
-  tipo: TipoOperacion
-  cantidad: number
-  precio: number
-  moneda: string
-  liquidacion: Liquidacion
-  fecha_operacion: string
-  dj_aplicada: boolean
-  dj_texto: string | null
-  estado: EstadoMinuta
-  texto_minuta: string
-  texto_editado: boolean
-  creado_en: string
+  id: string;
+  // Campos del Excel
+  cliente_nombre: string;
+  cuenta_comitente: string;
+  cuenta_cotapartista: string;
+  id_orden: number;
+  fecha_operacion: string; // ISO datetime string
+  fecha_liquidacion: string;
+  operacion: string;
+  instrumento: string;
+  moneda: string;
+  cantidad: number;       // -1 = N/A
+  precio: number;         // -1 = N/A
+  monto: number;
+  estado_orden: string;
+  cantidad_operada: number; // -1 = N/A
+  precio_operado: number;   // -1 = N/A
+  operador: string;
+  origen: string;
+  asesor: string;
+  requiere_conformidad: number; // 0 | 1
+  // Campos de sesión
+  dj_aplicada: boolean;
+  dj_texto: string | null;
+  estado: EstadoMinuta;
+  texto_minuta: string;
+  texto_editado: boolean;
+  creado_en: string; // ISO datetime string
 }
 
-export interface SessionMinutasResponse {
-  items: Minuta[]
-  total: number
+export interface UploadMVPResponse {
+  ordenes_validas: number;
+  ordenes_con_error: number;
+  ordenes_filtradas: number;
+  errors: string[];
+  minutas: Minuta[];
+}
+
+export type CampoRegla =
+  | "operacion"
+  | "operador"
+  | "origen"
+  | "estado"
+  | "moneda"
+  | "instrumento"
+  | "cantidad"
+  | "precio"
+  | "monto"
+  | "cantidad_operada"
+  | "precio_operado"
+  | "requiere_conformidad";
+
+export type OperadorRegla = "=" | "!=" | ">" | "<" | ">=" | "<=";
+
+export interface ReglaConfig {
+  campo: CampoRegla;
+  operador: OperadorRegla;
+  valor: string;
 }
 
 export interface ConfigDJ {
-  activa: boolean
-  incluir_texto_en_minuta: boolean
-  texto_alerta: string
-  reglas: ReglaDJ[]
-  logica: LogicaDJ
+  activa: boolean;
+  incluir_texto_en_minuta: boolean;
+  texto_alerta: string;
+  reglas: ReglaConfig[];
+  logica: "AND" | "OR";
+  activar_si_requiere_conformidad: boolean;
 }
 
-export interface Plantilla {
-  texto: string
+export interface ConfigFiltros {
+  reglas: ReglaConfig[];
+  logica: "AND" | "OR";
 }
 
-export interface UploadResponse {
-  nombre_archivo: string
-  total_ordenes: number
-  ordenes_validas: number
-  ordenes_con_error: number
-  errors: { fila: number; mensaje: string }[]
-  minutas: Minuta[]
+export interface SessionMinutasResponse {
+  items: Minuta[];
+  total: number;
 }
 
-export interface LoginResponse {
-  pending_token: string
-  message: string
-}
-
-export interface TokenResponse {
-  access_token: string
-  refresh_token: string
-  token_type: string
+export interface PlantillaResponse {
+  texto: string;
 }
