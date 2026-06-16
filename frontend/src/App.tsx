@@ -4,8 +4,10 @@ import TwoFactorPage from './pages/TwoFactorPage'
 import RegisterPage from './pages/RegisterPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import DashboardPage from './pages/DashboardPage'
+import FiltradaPage from './pages/FiltradaPage'
 import PlantillaPage from './pages/PlantillaPage'
 import ConfigDJPage from './pages/ConfigDJPage'
+import FiltrosMinutasPage from './pages/FiltrosMinutasPage'
 import AppLayout from './components/layout/AppLayout'
 import AuthGuard from './components/layout/AuthGuard'
 
@@ -20,8 +22,10 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/dashboard/borradores" element={<DashboardPage estado="BORRADOR" />} />
           <Route path="/dashboard/enviados" element={<DashboardPage estado="ENVIADO" />} />
+          <Route path="/dashboard/filtradas" element={<FiltradaPage />} />
           <Route path="/dashboard/plantilla" element={<PlantillaPage />} />
           <Route path="/dashboard/config-dj" element={<ConfigDJPage />} />
+          <Route path="/dashboard/filtros-minutas" element={<FiltrosMinutasPage />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to="/dashboard/borradores" replace />} />

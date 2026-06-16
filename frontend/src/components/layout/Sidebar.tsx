@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, Send, FileEdit, Settings2, Upload, LogOut, KeyRound, ShieldCheck } from 'lucide-react'
+import { FileText, Send, Filter, FileEdit, Settings2, Sliders, Upload, LogOut, KeyRound, ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
@@ -77,9 +77,11 @@ export default function Sidebar() {
         <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
           <NavItem to="/dashboard/borradores" label="Borradores" icon={FileText} count={borradores} />
           <NavItem to="/dashboard/enviados" label="Enviados" icon={Send} count={enviados} />
+          <NavItem to="/dashboard/filtradas" label="Filtradas" icon={Filter} />
           <Separator className="my-2" />
           <NavItem to="/dashboard/plantilla" label="Plantilla Estándar" icon={FileEdit} />
           <NavItem to="/dashboard/config-dj" label="Config DJ" icon={Settings2} />
+          <NavItem to="/dashboard/filtros-minutas" label="Filtros de Minutas" icon={Sliders} />
         </nav>
 
         <div className="p-3 border-t border-slate-100 space-y-2">
