@@ -10,8 +10,11 @@ from starlette.responses import Response as StarletteResponse
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.limiter import limiter
+from app.core.logging_config import setup_logging, RequestLoggingMiddleware
 from app.routers import auth, uploads
 from app.routers import session as session_router
+
+setup_logging()
 
 app = FastAPI(title="Gestión de Órdenes Bursátiles — MVP", version="2.0.0")
 app.state.limiter = limiter
@@ -36,6 +39,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestLoggingMiddleware)
 
 app.include_router(auth.router)
 app.include_router(uploads.router)
