@@ -1,7 +1,11 @@
+"""
+Initializes the dev SQLite DB and creates a default user.
+Run from backend/: python scripts/init_dev_db.py
+"""
 import os
 import sys
 
-os.environ["DATABASE_URL"] = "sqlite:///./dev.db"
+os.environ.setdefault("DATABASE_URL", "sqlite:///./dev.db")
 os.environ.setdefault("SECRET_KEY", "dev_secret_key_minimum_32_characters_here_change_in_prod")
 os.environ.setdefault("ENCRYPTION_KEY", "LyWtB1layYFDFofxU8rPzytOeU9BJYQh6X1tstWHhD4=")
 os.environ.setdefault("TOTP_ISSUER", "GestionMails")
@@ -14,8 +18,10 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base
 from app.models.user import User
-from app.models.order import Orden, ExcelUpload
-from app.models.audit import AuditEvent, DJTemplate
+from app.models.plantilla import Plantilla
+from app.models.config_dj import ConfigDJ
+from app.models.config_filtros import ConfigFiltros
+from app.models.invite_token import InviteToken
 from app.core.security import hash_password, generate_totp_secret, get_totp_provisioning_uri
 
 engine = create_engine(
