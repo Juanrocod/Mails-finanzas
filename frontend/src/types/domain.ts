@@ -68,6 +68,8 @@ export interface ReglaConfig {
 }
 
 export interface ConfigDJ {
+  id?: number;
+  nombre: string;
   activa: boolean;
   incluir_texto_en_minuta: boolean;
   texto_alerta: string;
