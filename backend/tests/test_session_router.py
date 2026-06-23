@@ -393,3 +393,11 @@ def test_health_check_returns_database_status(client):
     data = r.json()
     assert data["status"] == "ok"
     assert data["database"] == "ok"
+
+
+def test_security_headers_present(client):
+    r = client.get("/health")
+    assert r.headers["X-Content-Type-Options"] == "nosniff"
+    assert r.headers["X-Frame-Options"] == "DENY"
+    assert r.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+    assert "Permissions-Policy" in r.headers
