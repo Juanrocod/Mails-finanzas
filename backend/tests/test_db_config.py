@@ -90,26 +90,3 @@ def test_delete_config_dj_nonexistent_returns_false(db):
     assert db_config.delete_config_dj(db, 9999) is False
 
 
-# --- Compatibility shim tests ---
-
-
-def test_load_config_dj_compat_returns_defaults_when_empty(db):
-    cfg = db_config.load_config_dj(db)
-    assert cfg.activa is False
-    assert cfg.reglas == []
-
-
-def test_save_and_load_config_dj_compat(db):
-    data = ConfigDJData(
-        nombre="DJ General",
-        activa=True,
-        incluir_texto_en_minuta=True,
-        texto_alerta="DJ: {cliente_nombre}",
-        reglas=[{"campo": "cantidad", "operador": ">=", "valor": "1000000"}],
-        logica="AND",
-    )
-    db_config.save_config_dj(db, data)
-    loaded = db_config.load_config_dj(db)
-    assert loaded.activa is True
-    assert loaded.texto_alerta == "DJ: {cliente_nombre}"
-    assert loaded.reglas == [{"campo": "cantidad", "operador": ">=", "valor": "1000000"}]

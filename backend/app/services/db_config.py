@@ -132,25 +132,6 @@ def delete_config_dj(db: Session, dj_id: int) -> bool:
     return True
 
 
-# --- Compatibility shims (used by routers/session.py and routers/uploads.py) ---
-# These will be removed in Tasks 2-3 when callers migrate to multi-DJ API.
-
-def load_config_dj(db: Session) -> ConfigDJData:
-    """Load the first DJ config, or return defaults if none exist."""
-    all_djs = load_all_config_dj(db)
-    if not all_djs:
-        return ConfigDJData()
-    return all_djs[0]
-
-
-def save_config_dj(db: Session, data: ConfigDJData) -> None:
-    """Upsert the first DJ config (singleton compat)."""
-    all_djs = load_all_config_dj(db)
-    if all_djs:
-        update_config_dj(db, all_djs[0].id, data)
-    else:
-        create_config_dj(db, data)
-
 
 def load_config_filtros(db: Session) -> ConfigFiltrosData:
     row = db.get(ConfigFiltros, 1)
