@@ -381,3 +381,15 @@ def test_requires_auth_config_filtros(client):
 def test_requires_auth_agregar_todas(client):
     r = client.post("/session/minutas-filtradas/agregar-todas")
     assert r.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# GET /health
+# ---------------------------------------------------------------------------
+
+def test_health_check_returns_database_status(client):
+    r = client.get("/health")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["status"] == "ok"
+    assert data["database"] == "ok"

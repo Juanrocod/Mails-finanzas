@@ -2,8 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
 
 from app.core.config import settings
+from app.core.database import SessionLocal
 from app.core.limiter import limiter
 from app.routers import auth, uploads
 from app.routers import session as session_router
@@ -27,4 +29,10 @@ app.include_router(session_router.router)
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        return {"status": "ok", "database": "ok"}
+    except Exception:
+        return {"status": "degraded", "database": "error"}
