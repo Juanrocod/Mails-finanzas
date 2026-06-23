@@ -1,8 +1,17 @@
 # backend/tests/test_uploads.py
 import io
+import pytest
 import openpyxl
 from app.services.excel_parser import EXPECTED_COLUMNS
+from app.models.config_dj import ConfigDJ
 import app.services.session_store as store
+
+
+@pytest.fixture(autouse=True)
+def _clean_config_dj(db):
+    """Ensure config_dj table is empty before each test for isolation."""
+    db.query(ConfigDJ).delete()
+    db.commit()
 
 
 def make_excel_bytes(rows: list[dict]) -> bytes:
@@ -120,6 +129,64 @@ def test_upload_ordenes_filtradas_count(client, auth_headers):
     data = r.json()
     assert "ordenes_filtradas" in data
     assert data["ordenes_filtradas"] == 0
+
+
+def test_upload_with_multiple_djs(client, auth_headers, db):
+    """When multiple DJs are active, all should be evaluated and matching texts concatenated."""
+    from app.services.db_config import create_config_dj, ConfigDJData
+
+    create_config_dj(db, ConfigDJData(
+        nombre="DJ monto alto",
+        activa=True,
+        incluir_texto_en_minuta=True,
+        texto_alerta="Alerta por monto alto",
+        reglas=[{"campo": "monto", "operador": ">=", "valor": "1000"}],
+        logica="OR",
+    ))
+    create_config_dj(db, ConfigDJData(
+        nombre="DJ operacion compra",
+        activa=True,
+        incluir_texto_en_minuta=True,
+        texto_alerta="Alerta por compra",
+        reglas=[{"campo": "operacion", "operador": "=", "valor": "Compra CI"}],
+        logica="OR",
+    ))
+
+    excel = make_excel_bytes([VALID_ROW])
+    r = client.post(
+        "/uploads/excel",
+        files={"file": ("ops.xlsx", excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        headers=auth_headers,
+    )
+    assert r.status_code == 201
+    minuta = r.json()["minutas"][0]
+    assert minuta["dj_aplicada"] is True
+    assert "Alerta por monto alto" in minuta["dj_texto"]
+    assert "Alerta por compra" in minuta["dj_texto"]
+
+
+def test_upload_inactive_dj_ignored(client, auth_headers, db):
+    """DJs with activa=False should not be evaluated."""
+    from app.services.db_config import create_config_dj, ConfigDJData
+
+    create_config_dj(db, ConfigDJData(
+        nombre="DJ inactiva",
+        activa=False,
+        incluir_texto_en_minuta=True,
+        texto_alerta="No debería aparecer",
+        reglas=[{"campo": "monto", "operador": ">=", "valor": "1"}],
+        logica="OR",
+    ))
+
+    excel = make_excel_bytes([VALID_ROW])
+    r = client.post(
+        "/uploads/excel",
+        files={"file": ("ops.xlsx", excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        headers=auth_headers,
+    )
+    assert r.status_code == 201
+    minuta = r.json()["minutas"][0]
+    assert minuta["dj_aplicada"] is False
 
 
 def test_partial_errors_reported_without_blocking(client, auth_headers):

@@ -41,7 +41,7 @@ def upload_excel(
         raise HTTPException(status_code=400, detail=str(exc))
 
     user_id = str(current_user.id)
-    config_dj = db_config.load_config_dj(db)
+    all_djs = db_config.load_all_config_dj(db)
     config_filtros = db_config.load_config_filtros(db)
     plantilla = db_config.load_plantilla(db)
     now = datetime.now(timezone.utc)
@@ -77,8 +77,16 @@ def upload_excel(
         if filtro_motivo:
             filtradas_count += 1
 
-        dj_aplica = evaluar_reglas(config_dj, datos)
-        dj_texto = resolver_dj_texto(config_dj, datos) if dj_aplica else None
+        # Evaluate all active DJs
+        dj_aplica = False
+        dj_textos: list[str] = []
+        for dj_cfg in all_djs:
+            if evaluar_reglas(dj_cfg, datos):
+                dj_aplica = True
+                texto_dj = resolver_dj_texto(dj_cfg, datos)
+                if texto_dj:
+                    dj_textos.append(texto_dj)
+        dj_texto = "\n\n---\n\n".join(dj_textos) if dj_textos else None
         texto = generate_minuta_text(plantilla, datos, dj_texto=dj_texto)
 
         minutas.append(MinutaSession(
