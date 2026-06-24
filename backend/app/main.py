@@ -1,3 +1,4 @@
+import fastapi
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -77,10 +78,10 @@ def health():
 
 
 @app.post("/admin/create-invite")
-def create_invite(admin_key: str, frontend_url: str = "http://localhost:5173"):
-    if admin_key != settings.SECRET_KEY:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Forbidden")
+def create_invite(x_admin_key: str = fastapi.Header(...)):
+    import hmac
+    if not hmac.compare_digest(x_admin_key, settings.SECRET_KEY):
+        raise fastapi.HTTPException(status_code=403, detail="Forbidden")
     import secrets
     from datetime import datetime, timedelta, timezone
     from app.models.invite_token import InviteToken
@@ -93,4 +94,4 @@ def create_invite(admin_key: str, frontend_url: str = "http://localhost:5173"):
     ))
     db.commit()
     db.close()
-    return {"register_url": f"{frontend_url}/register?token={token_value}"}
+    return {"token": token_value}
