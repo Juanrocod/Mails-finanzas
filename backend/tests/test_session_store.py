@@ -201,7 +201,7 @@ def test_agregar_todas_filtradas_empty_returns_zero():
 # clear_borradores_y_filtradas
 # ---------------------------------------------------------------------------
 
-def test_clear_borradores_y_filtradas_keeps_enviados():
+def test_clear_borradores_y_filtradas_clears_all():
     m_b = _make_minuta(id="b1", estado="BORRADOR")
     m_f = _make_minuta(id="f1", estado="FILTRADA")
     m_e = _make_minuta(id="e1", estado="ENVIADO")
@@ -209,9 +209,7 @@ def test_clear_borradores_y_filtradas_keeps_enviados():
     clear_borradores_y_filtradas(USER)
     assert get_minutas(USER, "BORRADOR") == []
     assert get_minutas(USER, "FILTRADA") == []
-    enviados = get_minutas(USER, "ENVIADO")
-    assert len(enviados) == 1
-    assert enviados[0].id == "e1"
+    assert get_minutas(USER, "ENVIADO") == []
 
 
 # ---------------------------------------------------------------------------

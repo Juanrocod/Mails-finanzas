@@ -66,9 +66,9 @@ def clear_session(user_id: str) -> None:
 
 
 def clear_borradores_y_filtradas(user_id: str) -> None:
-    """Limpia BORRADOR y FILTRADA al subir un nuevo Excel. ENVIADO no se toca."""
+    """Limpia todas las minutas al subir un nuevo Excel."""
     session = _get_or_create(user_id)
-    session.minutas = [m for m in session.minutas if m.estado == "ENVIADO"]
+    session.minutas = []
 
 
 def add_minutas(user_id: str, minutas: list[MinutaSession]) -> None:
