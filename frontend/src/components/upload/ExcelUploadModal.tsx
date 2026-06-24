@@ -69,13 +69,17 @@ export default function ExcelUploadModal({ open, onClose }: Props) {
   async function handleUpload() {
     if (!file) return
     setStep('uploading')
+    qc.setQueryData<SessionMinutasResponse>(['minutas', 'BORRADOR' as EstadoMinuta], { items: [], total: 0 })
+    qc.setQueryData<SessionMinutasResponse>(['minutas', 'ENVIADO' as EstadoMinuta], { items: [], total: 0 })
+    qc.setQueryData<SessionMinutasResponse>(['minutas', 'FILTRADA' as EstadoMinuta], { items: [], total: 0 })
     try {
       const res = await uploadExcel(file)
       setResult(res)
-      qc.invalidateQueries({ queryKey: ['minutas', 'BORRADOR' as EstadoMinuta] })
+      qc.invalidateQueries({ queryKey: ['minutas'] })
       setStep('done')
     } catch {
       setError('Error al procesar el archivo. Verificá el formato e intentá de nuevo.')
+      qc.invalidateQueries({ queryKey: ['minutas'] })
       setStep('preview')
     }
   }
